@@ -12,21 +12,16 @@ import android.speech.SpeechRecognizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
+import okio.ByteString
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
+import java.util.UUID
 
 class VoiceManager(private val context: Context) {
     private var speechRecognizer: SpeechRecognizer? = null
     private var mediaPlayer: MediaPlayer? = null
-    
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val edgeTtsUrl = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4"
 
     init {
         try {
@@ -36,42 +31,64 @@ class VoiceManager(private val context: Context) {
         }
     }
 
-    suspend fun speakWithFishAudio(text: String, apiKey: String) = withContext(Dispatchers.IO) {
-        if (apiKey.isEmpty()) return@withContext
+    suspend fun speakWithEdgeTts(text: String) = withContext(Dispatchers.IO) {
+        val client = OkHttpClient()
         
-        val json = JSONObject().apply {
-            put("text", text)
-            put("model", "s2.1-pro-free")
-            // Young Bengali Voice (মিষ্টি তরুণী কণ্ঠস্বর)
-            put("voice_id", "5e984cb0bd3b48db94961da04b341464") 
-            put("format", "mp3")
+        val config = JSONObject().apply {
+            put("context", JSONObject().apply {
+                put("synthesis", JSONObject().apply {
+                    put("audio", JSONObject().apply {
+                        put("metadataoptions", JSONObject().apply {
+                            put("sentenceBoundaryEnabled", "false")
+                            put("wordBoundaryEnabled", "false")
+                        })
+                        put("outputFormat", "audio-24khz-48kbitrate-mono-mp3")
+                    })
+                })
+            })
         }
 
-        val request = Request.Builder()
-            .url("https://api.fish.audio/v1/tts")
-            .addHeader("Authorization", "Bearer $apiKey")
-            .addHeader("Content-Type", "application/json")
-            .post(json.toString().toRequestBody("application/json".toMediaType()))
-            .build()
+        // পিচ +45Hz এবং স্পিড +15% করা হলো একদম মিষ্টি তরুণী কণ্ঠের জন্য
+        val ssml = """
+            <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='bn-BD'>
+                <voice name='bn-BD-NabanitaNeural'>
+                    <prosody rate='+15%' pitch='+45Hz'>$text</prosody>
+                </voice>
+            </speak>
+        """.trimIndent()
+
+        val request = Request.Builder().url(edgeTtsUrl).addHeader("Content-Type", "application/json; charset=utf-8").build()
 
         try {
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val audioBytes = response.body?.bytes()
-                if (audioBytes != null) {
-                    val audioFile = File(context.cacheDir, "maya_fish_voice.mp3")
-                    FileOutputStream(audioFile).use { it.write(audioBytes) }
+            client.newWebSocket(request, object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    webSocket.send("Path: speech.config\r\nX-RequestId: ${UUID.randomUUID()}\r\nX-Timestamp: ${System.currentTimeMillis()}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n$config")
+                    webSocket.send("Path: ssml\r\nX-RequestId: ${UUID.randomUUID()}\r\nX-Timestamp: ${System.currentTimeMillis()}\r\nContent-Type: application/ssml+xml\r\n\r\n$ssml")
+                }
+
+                override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                    val audioFile = File(context.cacheDir, "maya_voice.mp3")
+                    FileOutputStream(audioFile).use { it.write(bytes.toByteArray()) }
                     
                     Handler(Looper.getMainLooper()).post {
-                        mediaPlayer?.release()
-                        mediaPlayer = MediaPlayer().apply {
-                            setDataSource(audioFile.absolutePath)
-                            prepare()
-                            start()
+                        try {
+                            mediaPlayer?.release()
+                            mediaPlayer = MediaPlayer().apply {
+                                setDataSource(audioFile.absolutePath)
+                                prepare()
+                                start()
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
                     }
+                    webSocket.close(1000, "Done")
                 }
-            }
+
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    t.printStackTrace()
+                }
+            })
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -80,7 +97,7 @@ class VoiceManager(private val context: Context) {
     fun startListening(onResult: (String) -> Unit, onError: (String) -> Unit) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-IN")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-BD")
         }
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
