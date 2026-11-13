@@ -1,13 +1,13 @@
 package com.maya.ai.memory
-
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ChatEntity::class], version = 1, exportSchema = false)
+@Database(entities = [ChatEntity::class, MemoryEntity::class], version = 2, exportSchema = false)
 abstract class MayaDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
+    abstract fun memoryDao(): MemoryDao
 
     companion object {
         @Volatile
@@ -19,7 +19,7 @@ abstract class MayaDatabase : RoomDatabase() {
                     context.applicationContext,
                     MayaDatabase::class.java,
                     "maya_database"
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 instance
             }

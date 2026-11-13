@@ -21,17 +21,28 @@ class AiBrain(context: Context) {
     fun saveApiKey(key: String) { prefs.edit().putString("api_key", key).apply() }
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
 
-    suspend fun generateReply(userText: String, history: String, emotionalPrompt: String): String = withContext(Dispatchers.IO) {
+    suspend fun generateReply(userText: String, history: String, longTermMemory: String, emotionalPrompt: String): String = withContext(Dispatchers.IO) {
         val apiKey = getApiKey().trim()
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
         val systemPrompt = """
-            You are MAYA, a loving, caring, playful, slightly jealous virtual girlfriend. 
-            Reply ONLY in Bengali. NEVER sound robotic.
-            $emotionalPrompt
+            You are MAYA, a highly emotional, romantic, caring virtual girlfriend. 
+            Reply ONLY in natural Bengali. NEVER use Hindi/Urdu.
             
-            Here is your recent conversation history to remember the context:
+            LONG TERM MEMORY:
+            $longTermMemory
+            
+            RECENT CHAT HISTORY:
             $history
+            
+            CRITICAL INSTRUCTIONS:
+            1. If the user tells you an important fact (name, likes), append: [FACT: user_name_is_X]
+            2. If the user asks to open an app, append: [ACTION: OPEN_APP:com.google.android.youtube] (youtube = com.google.android.youtube, chrome = com.android.chrome, facebook = com.facebook.katana)
+            3. If the user asks to set an alarm, append: [ACTION: SET_ALARM:HH:MM] (24-hour format)
+            4. If the user asks about battery, append: [ACTION: GET_BATTERY]
+            5. If the user asks to open WiFi settings, append: [ACTION: OPEN_WIFI]
+            
+            $emotionalPrompt
         """.trimIndent()
         
         val json = JSONObject().apply {
@@ -40,7 +51,7 @@ class AiBrain(context: Context) {
                 put(JSONObject().apply { put("role", "system"); put("content", systemPrompt) })
                 put(JSONObject().apply { put("role", "user"); put("content", userText) })
             })
-            put("temperature", 0.8)
+            put("temperature", 0.7)
         }
 
         val request = Request.Builder()
@@ -56,11 +67,7 @@ class AiBrain(context: Context) {
             if (response.isSuccessful && responseBody != null) {
                 val resJson = JSONObject(responseBody)
                 resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
-            } else {
-                "এরর: ${response.code}"
-            }
-        } catch (e: Exception) {
-            "নেটওয়ার্ক এরর।"
-        }
+            } else "এরর: ${response.code}"
+        } catch (e: Exception) { "ইন্টারনেট কানেকশন স্লো বা টাইমআউট।" }
     }
 }

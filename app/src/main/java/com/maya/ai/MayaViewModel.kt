@@ -7,6 +7,8 @@ import com.maya.ai.ai.AiBrain
 import com.maya.ai.emotional.EmotionalEngine
 import com.maya.ai.memory.ChatEntity
 import com.maya.ai.memory.MayaDatabase
+import com.maya.ai.memory.MemoryEntity
+import com.maya.ai.phone.PhoneController
 import com.maya.ai.voice.VoiceManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +20,10 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
     private val aiBrain = AiBrain(application)
     private val voiceManager = VoiceManager(application)
     private val emotionalEngine = EmotionalEngine()
+    private val phoneController = PhoneController(application)
     private val db = MayaDatabase.getDatabase(application)
-    private val dao = db.chatDao()
+    private val chatDao = db.chatDao()
+    private val memoryDao = db.memoryDao()
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages
@@ -30,80 +34,73 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentMood = MutableStateFlow(emotionalEngine.getCurrentMood())
     val currentMood: StateFlow<String> = _currentMood
 
+    private var longTermMemoryString = ""
+
     init {
-        // ডেটাবেস থেকে পুরনো চ্যাট লোড করা
-        viewModelScope.launch {
-            dao.getAllMessages().collect { entities ->
-                _messages.value = entities.map { ChatMessage(it.text, it.isUser, it.timestamp) }
-            }
-        }
+        viewModelScope.launch { chatDao.getAllMessages().collect { entities -> _messages.value = entities.map { ChatMessage(it.text, it.isUser, it.timestamp) } } }
+        viewModelScope.launch { memoryDao.getAllMemories().collect { memories -> longTermMemoryString = memories.joinToString("\n") { "- ${it.fact}" } } }
     }
 
     fun setApiKey(key: String) = aiBrain.saveApiKey(key)
     fun getApiKey() = aiBrain.getApiKey()
 
     fun setTtsApiKey(key: String) {
-        getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
-            .edit().putString("sarvam_key", key).apply()
+        getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE).edit().putString("sarvam_key", key).apply()
     }
     fun getTtsApiKey(): String {
-        return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
-            .getString("sarvam_key", "") ?: ""
+        return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE).getString("sarvam_key", "") ?: ""
     }
 
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
-        
-        val userMsg = ChatEntity(text = text, isUser = true)
-        
         viewModelScope.launch {
-            dao.insertMessage(userMsg)
+            chatDao.insertMessage(ChatEntity(text = text, isUser = true))
             _isLoading.value = true
 
             emotionalEngine.analyzeUserMessage(text)
             val mood = emotionalEngine.getCurrentMood()
             _currentMood.value = mood
+            val emotion = when { mood.contains("রাগ") || mood.contains("ঈর্ষা") -> "angry"; mood.contains("দুঃখ") -> "sad"; mood.contains("ভালোবাসা") || mood.contains("খুশি") -> "happy"; else -> "neutral" }
 
-            val emotion = when {
-                mood.contains("রাগ") || mood.contains("ঈর্ষা") -> "angry"
-                mood.contains("দুঃখ") -> "sad"
-                mood.contains("ভালোবাসা") || mood.contains("খুশি") -> "happy"
-                else -> "neutral"
+            val history = _messages.value.takeLast(10).map { if (it.isUser) "User: ${it.text}" else "Maya: ${it.text}" }.joinToString("\n")
+            var rawReply = aiBrain.generateReply(text, history, longTermMemoryString, emotionalEngine.getEmotionalPrompt())
+            
+            val factRegex = Regex("\\[FACT:\\s*(.*?)\\]")
+            val factMatch = factRegex.find(rawReply)
+            if (factMatch != null) {
+                memoryDao.insertMemory(MemoryEntity(fact = factMatch.groupValues[1].replace("_", " ")))
+                rawReply = rawReply.replace(factMatch.value, "").trim()
             }
 
-            // এআই-কে আগের চ্যাটগুলো পাঠানো (Context)
-            val history = _messages.value.takeLast(10).map { 
-                if (it.isUser) "User: ${it.text}" else "Maya: ${it.text}" 
-            }.joinToString("\n")
+            var actionResult = ""
+            val actionRegex = Regex("\\[ACTION:\\s*(.*?)\\]")
+            val actionMatch = actionRegex.find(rawReply)
+            if (actionMatch != null) {
+                val parts = actionMatch.groupValues[1].split(":")
+                actionResult = when (parts[0]) {
+                    "OPEN_APP" -> if (parts.size > 1) phoneController.openApp(parts[1]) else "অ্যাপের নাম বলোনি।"
+                    "SET_ALARM" -> if (parts.size > 1) {
+                        val timeParts = parts[1].split(":")
+                        if (timeParts.size == 2) phoneController.setAlarm(timeParts[0].toIntOrNull() ?: 8, timeParts[1].toIntOrNull() ?: 0) else "সময় বুঝতে পারিনি।"
+                    } else "কখন অ্যালার্ম দেব?"
+                    "GET_BATTERY" -> phoneController.getBatteryLevel()
+                    "OPEN_WIFI" -> phoneController.openWifiSettings()
+                    else -> ""
+                }
+                rawReply = rawReply.replace(actionMatch.value, "").trim()
+            }
 
-            val reply = aiBrain.generateReply(text, history, emotionalEngine.getEmotionalPrompt())
-            
-            val mayaMsg = ChatEntity(text = reply, isUser = false)
-            dao.insertMessage(mayaMsg)
-            
+            val finalReply = if (actionResult.isNotEmpty()) "$rawReply\n\n($actionResult)" else rawReply
+            chatDao.insertMessage(ChatEntity(text = finalReply, isUser = false))
             _isLoading.value = false
             
             val ttsKey = getTtsApiKey()
-            if (ttsKey.isNotEmpty()) {
-                voiceManager.speakWithSarvam(reply, ttsKey, emotion)
-            }
+            if (ttsKey.isNotEmpty()) voiceManager.speakWithSarvam(finalReply, ttsKey, emotion)
         }
     }
 
-    fun clearHistory() {
-        viewModelScope.launch {
-            dao.clearHistory()
-        }
-    }
-
-    fun startListening() {
-        _isListening.value = true
-        voiceManager.startListening(
-            onResult = { text -> _isListening.value = false; sendMessage(text) },
-            onError = { error -> _isListening.value = false }
-        )
-    }
-
+    fun clearHistory() { viewModelScope.launch { chatDao.clearHistory() } }
+    fun startListening() { _isListening.value = true; voiceManager.startListening(onResult = { text -> _isListening.value = false; sendMessage(text) }, onError = { _isListening.value = false }) }
     fun stopListening() { _isListening.value = false; voiceManager.stopListening() }
     override fun onCleared() { super.onCleared(); voiceManager.destroy() }
 }

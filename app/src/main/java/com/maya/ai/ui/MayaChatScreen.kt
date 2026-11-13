@@ -38,49 +38,24 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
         containerColor = Color(0xFF0D0D1A),
         topBar = {
             TopAppBar(
-                title = { 
-                    Column {
-                        Text("MAYA AI", fontWeight = FontWeight.Bold)
-                        Text("Mood: $currentMood", fontSize = 12.sp, color = Color.LightGray)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFE91E63))
-                    }
-                },
+                title = { Column { Text("MAYA AI", fontWeight = FontWeight.Bold); Text("Mood: $currentMood", fontSize = 12.sp, color = Color.LightGray) } },
+                actions = { IconButton(onClick = { showSettings = true }) { Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFE91E63)) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D0D1A), titleContentColor = Color(0xFFE91E63))
             )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 12.dp)) {
-            if (messages.isEmpty()) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text("মায়ার সাথে কথা বলা শুরু করো... ❤️", color = Color.Gray)
-                }
-            } else {
-                LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
-                    items(messages) { msg -> ChatBubble(msg) }
-                }
-            }
-
+            if (messages.isEmpty()) { Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { Text("মায়ার সাথে কথা বলা শুরু করো... ❤️", color = Color.Gray) } } 
+            else { LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) { items(messages) { msg -> ChatBubble(msg) } } }
+            
             if (isLoading) { Text("মায়া ভাবছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp) }
             if (isListening) { Text("মায়া শুনছে... 🎙️", color = Color(0xFFE91E63), modifier = Modifier.padding(8.dp), fontSize = 12.sp) }
 
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f),
-                    placeholder = { Text("মায়ার সাথে কথা বলো...", color = Color.Gray) },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color(0xFFE91E63), unfocusedBorderColor = Color.Gray)
-                )
+                OutlinedTextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("মায়ার সাথে কথা বলো...", color = Color.Gray) }, shape = RoundedCornerShape(24.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color(0xFFE91E63), unfocusedBorderColor = Color.Gray))
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { if (isListening) viewModel.stopListening() else viewModel.startListening() }) {
-                    Icon(Icons.Default.Mic, contentDescription = "Mic", tint = if (isListening) Color.Red else Color(0xFFE91E63))
-                }
-                IconButton(onClick = { viewModel.sendMessage(input); input = "" }, enabled = !isLoading && !isListening) {
-                    Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFFE91E63))
-                }
+                IconButton(onClick = { if (isListening) viewModel.stopListening() else viewModel.startListening() }) { Icon(Icons.Default.Mic, contentDescription = "Mic", tint = if (isListening) Color.Red else Color(0xFFE91E63)) }
+                IconButton(onClick = { viewModel.sendMessage(input); input = "" }, enabled = !isLoading && !isListening) { Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFFE91E63)) }
             }
         }
     }
@@ -93,23 +68,11 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                 Column {
                     OutlinedTextField(value = apiKeyInput, onValueChange = { apiKeyInput = it }, label = { Text("OpenRouter Key") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
                     OutlinedTextField(value = sarvamKeyInput, onValueChange = { sarvamKeyInput = it }, label = { Text("Sarvam AI Key") }, modifier = Modifier.fillMaxWidth())
-                    
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { 
-                        viewModel.clearHistory() 
-                        showSettings = false 
-                    }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
-                        Text("Clear Chat History", color = Color.White)
-                    }
+                    Button(onClick = { viewModel.clearHistory(); showSettings = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("Clear Chat History", color = Color.White) }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { 
-                    viewModel.setApiKey(apiKeyInput)
-                    viewModel.setTtsApiKey(sarvamKeyInput)
-                    showSettings = false 
-                }) { Text("Save") }
-            }
+            confirmButton = { TextButton(onClick = { viewModel.setApiKey(apiKeyInput); viewModel.setTtsApiKey(sarvamKeyInput); showSettings = false }) { Text("Save") } }
         )
     }
 }

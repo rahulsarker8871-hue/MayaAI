@@ -1,5 +1,4 @@
 package com.maya.ai.memory
-
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
