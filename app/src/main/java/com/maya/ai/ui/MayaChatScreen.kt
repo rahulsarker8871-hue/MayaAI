@@ -54,11 +54,18 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 12.dp)) {
-            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
-                items(messages) { msg -> ChatBubble(msg) }
-                if (isLoading) { item { Text("মায়া ভাবছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp) } }
-                if (isListening) { item { Text("মায়া শুনছে... 🎙️", color = Color(0xFFE91E63), modifier = Modifier.padding(8.dp), fontSize = 12.sp) } }
+            if (messages.isEmpty()) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Text("মায়ার সাথে কথা বলা শুরু করো... ❤️", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
+                    items(messages) { msg -> ChatBubble(msg) }
+                }
             }
+
+            if (isLoading) { Text("মায়া ভাবছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp) }
+            if (isListening) { Text("মায়া শুনছে... 🎙️", color = Color(0xFFE91E63), modifier = Modifier.padding(8.dp), fontSize = 12.sp) }
 
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
@@ -84,16 +91,16 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
             title = { Text("API Settings") },
             text = {
                 Column {
-                    OutlinedTextField(
-                        value = apiKeyInput, onValueChange = { apiKeyInput = it },
-                        label = { Text("OpenRouter API Key (Brain)") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                    )
-                    OutlinedTextField(
-                        value = sarvamKeyInput, onValueChange = { sarvamKeyInput = it },
-                        label = { Text("Sarvam AI Key (Voice)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    OutlinedTextField(value = apiKeyInput, onValueChange = { apiKeyInput = it }, label = { Text("OpenRouter Key") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+                    OutlinedTextField(value = sarvamKeyInput, onValueChange = { sarvamKeyInput = it }, label = { Text("Sarvam AI Key") }, modifier = Modifier.fillMaxWidth())
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { 
+                        viewModel.clearHistory() 
+                        showSettings = false 
+                    }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                        Text("Clear Chat History", color = Color.White)
+                    }
                 }
             },
             confirmButton = {
