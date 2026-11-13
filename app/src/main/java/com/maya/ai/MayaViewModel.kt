@@ -15,7 +15,7 @@ data class ChatMessage(val text: String, val isUser: Boolean)
 class MayaViewModel(application: Application) : AndroidViewModel(application) {
     private val aiBrain = AiBrain(application)
     private val voiceManager = VoiceManager(application)
-    private val emotionalEngine = EmotionalEngine() // মায়ার আবেগ যুক্ত হলো
+    private val emotionalEngine = EmotionalEngine()
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(
         listOf(ChatMessage("হ্যালো! আমি মায়া। আজ তুমি কেমন আছো?", false))
@@ -39,7 +39,6 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
         _messages.value = _messages.value + ChatMessage(text, true)
         _isLoading.value = true
 
-        // মায়ার আবেগ আপডেট করা হচ্ছে ইউজারের কথার ওপর ভিত্তি করে
         emotionalEngine.analyzeUserMessage(text)
         _currentMood.value = emotionalEngine.getCurrentMood()
 
@@ -47,7 +46,9 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
             val reply = aiBrain.generateReply(text, emotionalEngine.getEmotionalPrompt())
             _messages.value = _messages.value + ChatMessage(reply, false)
             _isLoading.value = false
-            voiceManager.speak(reply)
+            
+            // Edge TTS দিয়ে ভয়েস প্লে করা (কোনো API Key লাগে না)
+            voiceManager.speakWithEdgeTts(reply)
         }
     }
 

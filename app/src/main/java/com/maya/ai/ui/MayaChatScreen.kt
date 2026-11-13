@@ -117,16 +117,22 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     if (showSettings) {
         AlertDialog(
             onDismissRequest = { if(viewModel.getApiKey().isNotEmpty()) showSettings = false },
-            title = { Text("OpenRouter API Key") },
+            title = { Text("API Settings") },
             text = {
-                OutlinedTextField(
-                    value = apiKeyInput,
-                    onValueChange = { apiKeyInput = it },
-                    label = { Text("sk-or-v1-...") }
-                )
+                Column {
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = { apiKeyInput = it },
+                        label = { Text("OpenRouter API Key (Brain)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.setApiKey(apiKeyInput); showSettings = false }) { Text("Save") }
+                TextButton(onClick = { 
+                    viewModel.setApiKey(apiKeyInput)
+                    showSettings = false 
+                }) { Text("Save") }
             }
         )
     }

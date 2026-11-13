@@ -28,12 +28,11 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    
-    // মাইক এবং অন্যান্য এক্সট্রা আইকনের জন্য এই লাইনটি যুক্ত করা হলো
     implementation("androidx.compose.material:material-icons-extended")
-    
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    
+    // Networking (Already present, ensured here)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
 }
