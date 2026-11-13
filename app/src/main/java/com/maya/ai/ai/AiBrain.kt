@@ -18,14 +18,14 @@ class AiBrain(context: Context) {
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
 
     suspend fun generateReply(userText: String): String = withContext(Dispatchers.IO) {
-        val apiKey = getApiKey()
+        val apiKey = getApiKey().trim() // স্পেস থাকলে মুছে ফেলবে
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
         val prompt = "You are MAYA, a loving, caring, and playful virtual girlfriend. You speak in natural Bengali. Be affectionate and emotionally expressive. Reply to: $userText"
         
         val json = JSONObject().apply {
-            // সঠিক ফ্রি মডেলের নাম বসানো হলো
-            put("model", "meta-llama/llama-3.3-70b-instruct:free") 
+            // সম্পূর্ণ ফ্রি এবং সচল মডেল
+            put("model", "google/gemma-2-9b-it:free") 
             put("messages", JSONArray().apply {
                 put(JSONObject().apply { put("role", "user"); put("content", prompt) })
             })
@@ -45,10 +45,11 @@ class AiBrain(context: Context) {
                 val resJson = JSONObject(responseBody)
                 resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
             } else {
-                "এরর: ${response.code} (API Key চেক করুন)"
+                // আসল এররটা কী, সেটা দেখাবে
+                "এরর: ${response.code} - $responseBody"
             }
         } catch (e: Exception) {
-            "ইন্টারনেট কানেকশন চেক করো প্লিজ।"
+            "ইন্টারনেট বা কোড সমস্যা: ${e.message}"
         }
     }
 }
