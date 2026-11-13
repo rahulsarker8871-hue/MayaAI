@@ -39,21 +39,20 @@ class VoiceManager(private val context: Context) {
 
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
         if (apiKey.isEmpty()) {
-            showToast("API Key খালি আছে! সেটিংসে গিয়ে দিন।")
+            showToast("API Key খালি আছে!")
             return@withContext
         }
 
-        val pitch = when (emotion) { "happy" -> 0.4f; "sad" -> 0.1f; "angry" -> 0.3f; else -> 0.2f }
-        val pace = when (emotion) { "happy" -> 1.2f; "sad" -> 0.9f; "angry" -> 1.1f; else -> 1.0f }
-
+        // Sarvam-এর নতুন নিয়ম অনুযায়ী প্যারামিটার
         val json = JSONObject().apply {
             put("text", text)
             put("target_language_code", "bn-IN")
-            put("speaker", "ishita") 
-            put("pitch", pitch)
-            put("pace", pace)
-            put("loudness", 1.5)
-            put("model", "bulbul:v1")
+            put("speaker", "anushka") // bulbul:v2 এর জন্য মিষ্টি মেয়েলি ভয়েস
+            put("model", "bulbul:v2")   // আপডেট করা মডেল
+            put("pace", 1.1)           // কথা বলার গতি (স্বাভাবিকের চেয়ে একটু দ্রুত)
+            // pitch এবং loudness শুধু bulbul:v2 তে কাজ করে, তাই সেগুলো রাখা হলো
+            put("pitch", 0.2) 
+            put("loudness", 1.2)
         }
 
         val request = Request.Builder()
@@ -84,7 +83,7 @@ class VoiceManager(private val context: Context) {
                     }
                 }
             } else {
-                // যদি API এরর করে, তবে স্ক্রিনে দেখাবে কী এরর
+                // যদি এখনো এরর আসে, তবে স্ক্রিনে দেখাবে
                 showToast("Sarvam Error: ${response.code} - $responseBody")
             }
         } catch (e: Exception) {
