@@ -32,7 +32,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var input by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(viewModel.getApiKey().isEmpty()) }
     var apiKeyInput by remember { mutableStateOf(viewModel.getApiKey()) }
-    var fishKeyInput by remember { mutableStateOf(viewModel.getTtsApiKey()) }
 
     Scaffold(
         containerColor = Color(0xFF0D0D1A),
@@ -87,17 +86,12 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     OutlinedTextField(
                         value = apiKeyInput, onValueChange = { apiKeyInput = it },
                         label = { Text("OpenRouter API Key (Brain)") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                    )
-                    OutlinedTextField(
-                        value = fishKeyInput, onValueChange = { fishKeyInput = it },
-                        label = { Text("Fish Audio API Key (Voice)") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.setApiKey(apiKeyInput); viewModel.setTtsApiKey(fishKeyInput); showSettings = false }) { Text("Save") }
+                TextButton(onClick = { viewModel.setApiKey(apiKeyInput); showSettings = false }) { Text("Save") }
             }
         )
     }

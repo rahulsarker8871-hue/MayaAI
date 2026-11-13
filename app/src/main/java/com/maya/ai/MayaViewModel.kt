@@ -31,15 +31,6 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
     fun setApiKey(key: String) = aiBrain.saveApiKey(key)
     fun getApiKey() = aiBrain.getApiKey()
 
-    fun setTtsApiKey(key: String) {
-        getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
-            .edit().putString("fish_api_key", key).apply()
-    }
-    fun getTtsApiKey(): String {
-        return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
-            .getString("fish_api_key", "") ?: ""
-    }
-
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
         _messages.value = _messages.value + ChatMessage(text, true)
@@ -53,10 +44,8 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
             _messages.value = _messages.value + ChatMessage(reply, false)
             _isLoading.value = false
             
-            val ttsKey = getTtsApiKey()
-            if (ttsKey.isNotEmpty()) {
-                voiceManager.speakWithFishAudio(reply, ttsKey)
-            }
+            // এখানে নতুন ফ্রি Edge TTS ফাংশনটি কল করা হলো
+            voiceManager.speakWithEdgeTts(reply)
         }
     }
 
