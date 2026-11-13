@@ -24,8 +24,8 @@ class AiBrain(context: Context) {
         val prompt = "You are MAYA, a loving, caring, and playful virtual girlfriend. You speak in natural Bengali. Be affectionate and emotionally expressive. Reply to: $userText"
         
         val json = JSONObject().apply {
-            // সচল ও বহুভাষিক ফ্রি মডেল
-            put("model", "meta-llama/llama-3.3-70b-instruct:free") 
+            // OpenRouter Free Models Router - Automatically selects an available free model
+            put("model", "openrouter/free") 
             put("messages", JSONArray().apply {
                 put(JSONObject().apply { put("role", "user"); put("content", prompt) })
             })
