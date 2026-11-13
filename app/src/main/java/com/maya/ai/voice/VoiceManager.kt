@@ -9,6 +9,7 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
@@ -16,36 +17,44 @@ import okio.ByteString
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 import java.util.UUID
 
-class VoiceManager(private val context: Context) {
+class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
     private var speechRecognizer: SpeechRecognizer? = null
     private var mediaPlayer: MediaPlayer? = null
+    private var nativeTts: TextToSpeech? = null
+    private var isNativeTtsReady = false
+    private var isListening = false
+    
     private val edgeTtsUrl = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4"
 
     init {
         try {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+            nativeTts = TextToSpeech(context, this)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            // ফোনের নিজস্ব TTS ব্যাকআপ হিসেবে সেট করা হলো
+            val locale = Locale("bn", "IN")
+            if (nativeTts?.isLanguageAvailable(locale) == TextToSpeech.LANG_AVAILABLE) {
+                nativeTts?.language = locale
+            } else {
+                nativeTts?.language = Locale.US
+            }
+            isNativeTtsReady = true
+        }
+    }
+
     suspend fun speakWithEdgeTts(text: String, emotional: String = "normal") = withContext(Dispatchers.IO) {
         val client = OkHttpClient()
-        
-        val rate = when(emotional) {
-            "happy" -> "+15%"
-            "sad" -> "-10%"
-            "angry" -> "+5%"
-            else -> "+0%"
-        }
-        val pitch = when(emotional) {
-            "happy" -> "+10Hz"
-            "sad" -> "-10Hz"
-            "angry" -> "+5Hz"
-            else -> "+0Hz"
-        }
+        val rate = when(emotional) { "happy" -> "+15%"; "sad" -> "-10%"; "angry" -> "+5%"; else -> "+0%" }
+        val pitch = when(emotional) { "happy" -> "+10Hz"; "sad" -> "-10Hz"; "angry" -> "+5Hz"; else -> "+0Hz" }
 
         val config = JSONObject().apply {
             put("context", JSONObject().apply {
@@ -62,8 +71,8 @@ class VoiceManager(private val context: Context) {
         }
 
         val ssml = """
-            <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='bn-BD'>
-                <voice name='bn-BD-NabanitaNeural'>
+            <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='bn-IN'>
+                <voice name='bn-IN-TanishaaNeural'>
                     <prosody rate='$rate' pitch='$pitch'>$text</prosody>
                 </voice>
             </speak>
@@ -75,11 +84,9 @@ class VoiceManager(private val context: Context) {
             client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     webSocket.send("Path: speech.config\r\nX-RequestId: ${UUID.randomUUID()}\r\nX-Timestamp: ${System.currentTimeMillis()}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n$config")
-                    val ssmlId = UUID.randomUUID().toString().replace("-", "")
-                    webSocket.send("Path: ssml\r\nX-RequestId: $ssmlId\r\nX-Timestamp: ${System.currentTimeMillis()}\r\nContent-Type: application/ssml+xml\r\n\r\n$ssml")
+                    webSocket.send("Path: ssml\r\nX-RequestId: ${UUID.randomUUID()}\r\nX-Timestamp: ${System.currentTimeMillis()}\r\nContent-Type: application/ssml+xml\r\n\r\n$ssml")
                 }
 
-                // OkHttp-তে বাইনারি ডেটার জন্য ByteString ব্যবহার করতে হয়
                 override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
                     val audioFile = File(context.cacheDir, "maya_edge_tts.mp3")
                     FileOutputStream(audioFile).use { it.write(bytes.toByteArray()) }
@@ -96,27 +103,46 @@ class VoiceManager(private val context: Context) {
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    t.printStackTrace()
+                    // যদি Edge TTS ফেইল করে, তবে ফোনের TTS দিয়ে কথা বলাবে (Fallback)
+                    speakNative(text)
                 }
             })
         } catch (e: Exception) {
-            e.printStackTrace()
+            speakNative(text)
+        }
+    }
+
+    private fun speakNative(text: String) {
+        if (isNativeTtsReady) {
+            Handler(Looper.getMainLooper()).post {
+                nativeTts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "maya")
+            }
         }
     }
 
     fun startListening(onResult: (String) -> Unit, onError: (String) -> Unit) {
+        if (isListening) return // ডাবল ক্লিক রোধ করতে
+        isListening = true
+        
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-BD")
+            // bn-IN ব্যবহার করা হলো যাতে মাইক ঠিকমতো কাজ করে
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-IN")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         }
+        
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {}
-            override fun onError(error: Int) { onError("আবার বলো প্লিজ, ঠিকমতো শুনতে পাইনি।") }
+            override fun onEndOfSpeech() { isListening = false }
+            override fun onError(error: Int) { 
+                isListening = false 
+                onError("মাইকে সমস্যা হচ্ছে, আবার চেষ্টা করো।") 
+            }
             override fun onResults(results: Bundle?) {
+                isListening = false
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) onResult(matches[0])
             }
@@ -126,6 +152,14 @@ class VoiceManager(private val context: Context) {
         speechRecognizer?.startListening(intent)
     }
 
-    fun stopListening() { speechRecognizer?.stopListening() }
-    fun destroy() { speechRecognizer?.destroy(); mediaPlayer?.release() }
+    fun stopListening() { 
+        isListening = false
+        speechRecognizer?.stopListening() 
+    }
+    
+    fun destroy() { 
+        speechRecognizer?.destroy()
+        nativeTts?.shutdown()
+        mediaPlayer?.release() 
+    }
 }

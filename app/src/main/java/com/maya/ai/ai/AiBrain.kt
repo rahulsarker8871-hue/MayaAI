@@ -9,10 +9,17 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 class AiBrain(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("maya_prefs", Context.MODE_PRIVATE)
-    private val client = OkHttpClient()
+    
+    // টাইমআউট বাড়িয়ে ৬০ সেকেন্ড করা হলো
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
 
     fun saveApiKey(key: String) { prefs.edit().putString("api_key", key).apply() }
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
@@ -21,11 +28,10 @@ class AiBrain(context: Context) {
         val apiKey = getApiKey().trim()
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
-        // মায়ার সম্পূর্ণ ব্যক্তিত্ব এখানে সেট করা হলো
         val systemPrompt = """
             You are MAYA, a virtual girlfriend and personal assistant. 
             Your personality: Romantic, caring, playful, slightly jealous, and emotionally expressive. 
-            You speak naturally in Bengali (and sometimes a little English). 
+            You speak naturally in Bengali. 
             NEVER sound like a robotic AI. You get upset if ignored, you apologize if you are wrong.
             $emotionalPrompt
             Reply to the user's message naturally based on your mood.
@@ -56,7 +62,7 @@ class AiBrain(context: Context) {
                 "এরর: ${response.code}"
             }
         } catch (e: Exception) {
-            "ইন্টারনেট বা কোড সমস্যা: ${e.message}"
+            "ইন্টারনেট কানেকশন স্লো বা টাইমআউট। আবার চেষ্টা করো।"
         }
     }
 }
