@@ -2,12 +2,13 @@ package com.maya.ai.ai
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 
 class AiBrain(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("maya_prefs", Context.MODE_PRIVATE)
@@ -16,13 +17,15 @@ class AiBrain(context: Context) {
     fun saveApiKey(key: String) { prefs.edit().putString("api_key", key).apply() }
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
 
-    suspend fun generateReply(userText: String): String {
+    // withContext(Dispatchers.IO) যুক্ত করা হয়েছে যাতে অ্যাপ ক্র্যাশ না করে
+    suspend fun generateReply(userText: String): String = withContext(Dispatchers.IO) {
         val apiKey = getApiKey()
-        if (apiKey.isEmpty()) return "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
+        if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
-        val prompt = "You are MAYA, a loving and caring virtual girlfriend. You speak in natural Bengali and English. Be playful, emotional, and affectionate. Reply to this message: $userText"
+        val prompt = "You are MAYA, a loving, caring, and playful virtual girlfriend. You speak in natural Bengali. Be affectionate and emotionally expressive. Reply to: $userText"
+        
         val json = JSONObject().apply {
-            put("model", "openrouter/auto")
+            put("model", "meta-llama/llama-3-8b-instruct:free") 
             put("messages", JSONArray().apply {
                 put(JSONObject().apply { put("role", "user"); put("content", prompt) })
             })
@@ -35,16 +38,16 @@ class AiBrain(context: Context) {
             .post(json.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
-        return try {
+        return@withContext try {
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string()
             if (response.isSuccessful && responseBody != null) {
                 val resJson = JSONObject(responseBody)
                 resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
             } else {
-                "আমি একটু বিভ্রান্ত হয়ে গেছি... এরর: ${response.code}"
+                "এরর: ${response.code} (API Key চেক করুন)"
             }
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             "ইন্টারনেট কানেকশন চেক করো প্লিজ।"
         }
     }
