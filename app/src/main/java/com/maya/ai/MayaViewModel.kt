@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.maya.ai.ai.AiBrain
+import com.maya.ai.emotional.EmotionalEngine
+import com.maya.ai.voice.VoiceManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -12,14 +14,22 @@ data class ChatMessage(val text: String, val isUser: Boolean)
 
 class MayaViewModel(application: Application) : AndroidViewModel(application) {
     private val aiBrain = AiBrain(application)
+    private val voiceManager = VoiceManager(application)
+    private val emotionalEngine = EmotionalEngine() // মায়ার আবেগ যুক্ত হলো
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(
-        listOf(ChatMessage("হ্যালো! আমি মায়া। তোমার সাথে কথা বলতে পারলে খুব ভালো লাগবে। ❤️", false))
+        listOf(ChatMessage("হ্যালো! আমি মায়া। আজ তুমি কেমন আছো?", false))
     )
     val messages: StateFlow<List<ChatMessage>> = _messages
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _isListening = MutableStateFlow(false)
+    val isListening: StateFlow<Boolean> = _isListening
+
+    private val _currentMood = MutableStateFlow(emotionalEngine.getCurrentMood())
+    val currentMood: StateFlow<String> = _currentMood
 
     fun setApiKey(key: String) = aiBrain.saveApiKey(key)
     fun getApiKey() = aiBrain.getApiKey()
@@ -29,10 +39,39 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
         _messages.value = _messages.value + ChatMessage(text, true)
         _isLoading.value = true
 
+        // মায়ার আবেগ আপডেট করা হচ্ছে ইউজারের কথার ওপর ভিত্তি করে
+        emotionalEngine.analyzeUserMessage(text)
+        _currentMood.value = emotionalEngine.getCurrentMood()
+
         viewModelScope.launch {
-            val reply = aiBrain.generateReply(text)
+            val reply = aiBrain.generateReply(text, emotionalEngine.getEmotionalPrompt())
             _messages.value = _messages.value + ChatMessage(reply, false)
             _isLoading.value = false
+            voiceManager.speak(reply)
         }
+    }
+
+    fun startListening() {
+        _isListening.value = true
+        voiceManager.startListening(
+            onResult = { text ->
+                _isListening.value = false
+                sendMessage(text)
+            },
+            onError = { error ->
+                _isListening.value = false
+                _messages.value = _messages.value + ChatMessage(error, false)
+            }
+        )
+    }
+
+    fun stopListening() {
+        _isListening.value = false
+        voiceManager.stopListening()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        voiceManager.destroy()
     }
 }

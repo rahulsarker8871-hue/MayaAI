@@ -17,17 +17,25 @@ class AiBrain(context: Context) {
     fun saveApiKey(key: String) { prefs.edit().putString("api_key", key).apply() }
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
 
-    suspend fun generateReply(userText: String): String = withContext(Dispatchers.IO) {
+    suspend fun generateReply(userText: String, emotionalPrompt: String): String = withContext(Dispatchers.IO) {
         val apiKey = getApiKey().trim()
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
-        val prompt = "You are MAYA, a loving, caring, and playful virtual girlfriend. You speak in natural Bengali. Be affectionate and emotionally expressive. Reply to: $userText"
+        // মায়ার সম্পূর্ণ ব্যক্তিত্ব এখানে সেট করা হলো
+        val systemPrompt = """
+            You are MAYA, a virtual girlfriend and personal assistant. 
+            Your personality: Romantic, caring, playful, slightly jealous, and emotionally expressive. 
+            You speak naturally in Bengali (and sometimes a little English). 
+            NEVER sound like a robotic AI. You get upset if ignored, you apologize if you are wrong.
+            $emotionalPrompt
+            Reply to the user's message naturally based on your mood.
+        """.trimIndent()
         
         val json = JSONObject().apply {
-            // OpenRouter Free Models Router - Automatically selects an available free model
             put("model", "openrouter/free") 
             put("messages", JSONArray().apply {
-                put(JSONObject().apply { put("role", "user"); put("content", prompt) })
+                put(JSONObject().apply { put("role", "system"); put("content", systemPrompt) })
+                put(JSONObject().apply { put("role", "user"); put("content", userText) })
             })
         }
 
@@ -45,7 +53,7 @@ class AiBrain(context: Context) {
                 val resJson = JSONObject(responseBody)
                 resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
             } else {
-                "এরর: ${response.code} - $responseBody"
+                "এরর: ${response.code}"
             }
         } catch (e: Exception) {
             "ইন্টারনেট বা কোড সমস্যা: ${e.message}"

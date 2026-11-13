@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -25,6 +26,9 @@ import com.maya.ai.MayaViewModel
 fun MayaChatScreen(viewModel: MayaViewModel) {
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isListening by viewModel.isListening.collectAsStateWithLifecycle()
+    val currentMood by viewModel.currentMood.collectAsStateWithLifecycle()
+    
     var input by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(viewModel.getApiKey().isEmpty()) }
     var apiKeyInput by remember { mutableStateOf(viewModel.getApiKey()) }
@@ -33,7 +37,12 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
         containerColor = Color(0xFF0D0D1A),
         topBar = {
             TopAppBar(
-                title = { Text("MAYA AI", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text("MAYA AI", fontWeight = FontWeight.Bold)
+                        Text("Mood: $currentMood", fontSize = 12.sp, color = Color.LightGray)
+                    }
+                },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFE91E63))
@@ -56,7 +65,12 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                 items(messages) { msg -> ChatBubble(msg) }
                 if (isLoading) {
                     item {
-                        Text("মায়া লিখছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp)
+                        Text("মায়া ভাবছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp)
+                    }
+                }
+                if (isListening) {
+                    item {
+                        Text("মায়া শুনছে... 🎙️", color = Color(0xFFE91E63), modifier = Modifier.padding(8.dp), fontSize = 12.sp)
                     }
                 }
             }
@@ -77,9 +91,22 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                
+                IconButton(
+                    onClick = { 
+                        if (isListening) viewModel.stopListening() else viewModel.startListening() 
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.Mic, 
+                        contentDescription = "Mic", 
+                        tint = if (isListening) Color.Red else Color(0xFFE91E63)
+                    )
+                }
+                
                 IconButton(
                     onClick = { viewModel.sendMessage(input); input = "" },
-                    enabled = !isLoading
+                    enabled = !isLoading && !isListening
                 ) {
                     Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFFE91E63))
                 }
