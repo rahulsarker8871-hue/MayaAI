@@ -44,7 +44,6 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            // ব্যাকআপ ফোনের নিজস্ব TTS সেটআপ
             val locale = Locale("bn", "IN")
             if (nativeTts?.isLanguageAvailable(locale) == TextToSpeech.LANG_AVAILABLE) {
                 nativeTts?.language = locale
@@ -57,25 +56,20 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
 
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
         if (apiKey.isEmpty()) {
-            showToast("Sarvam API Key খালি!")
+            showToast("API Key খালি!")
             speakNative(text)
             return@withContext
         }
 
-        // bulbul:v3 এর জন্য সঠিক প্যারামিটার
-        val pace = when (emotion) { 
-            "happy" -> 1.2
-            "sad" -> 0.9
-            "angry" -> 1.1
-            else -> 1.0 
-        }
+        val pace = when (emotion) { "happy" -> 1.15; "sad" -> 0.9; "angry" -> 1.1; else -> 1.0 }
 
+        // bulbul:v3 এবং বাংলা মেয়েলি কণ্ঠ 'roopa' ব্যবহার করা হলো
         val json = JSONObject().apply {
             put("text", text)
-            put("target_language_code", "bn-IN") // বাংলা (ভারত)
-            put("speaker", "anushka")            // মিষ্টি মেয়েলি ভয়েস
-            put("model", "bulbul:v3")            // স্ট্যাবল ও রিকমেন্ডেড মডেল
-            put("pace", pace)                    // v3 এর রেঞ্জ: 0.5 থেকে 2.0
+            put("target_language_code", "bn-IN")
+            put("speaker", "roopa") 
+            put("model", "bulbul:v3")
+            put("pace", pace)
         }
 
         val request = Request.Builder()
@@ -106,8 +100,7 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
                     }
                 }
             } else {
-                // এরর হলে টোস্ট মেসেজ দেখাবে এবং ফোনের TTS দিয়ে কথা বলবে
-                showToast("Sarvam Error: ${response.code}. ফোনের ভয়েস ব্যবহার হচ্ছে।")
+                showToast("Sarvam Error: ${response.code}")
                 speakNative(text)
             }
         } catch (e: Exception) {
