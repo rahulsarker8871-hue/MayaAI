@@ -17,7 +17,6 @@ class AiBrain(context: Context) {
     fun saveApiKey(key: String) { prefs.edit().putString("api_key", key).apply() }
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
 
-    // withContext(Dispatchers.IO) যুক্ত করা হয়েছে যাতে অ্যাপ ক্র্যাশ না করে
     suspend fun generateReply(userText: String): String = withContext(Dispatchers.IO) {
         val apiKey = getApiKey()
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
@@ -25,7 +24,8 @@ class AiBrain(context: Context) {
         val prompt = "You are MAYA, a loving, caring, and playful virtual girlfriend. You speak in natural Bengali. Be affectionate and emotionally expressive. Reply to: $userText"
         
         val json = JSONObject().apply {
-            put("model", "meta-llama/llama-3-8b-instruct:free") 
+            // সঠিক ফ্রি মডেলের নাম বসানো হলো
+            put("model", "meta-llama/llama-3.3-70b-instruct:free") 
             put("messages", JSONArray().apply {
                 put(JSONObject().apply { put("role", "user"); put("content", prompt) })
             })
