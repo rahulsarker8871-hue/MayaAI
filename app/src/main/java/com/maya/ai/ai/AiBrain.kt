@@ -26,14 +26,13 @@ class AiBrain(context: Context) {
         val apiKey = getApiKey().trim()
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
-        // কঠোর প্রম্পট: শুধু বাংলায় কথা বলবে, হিন্দি/উর্দু বলবে না
         val systemPrompt = """
-            You are MAYA, a cute, romantic, and emotionally expressive virtual girlfriend. 
+            You are MAYA, a highly emotional, slightly possessive, and romantic virtual girlfriend. 
             CRITICAL RULES:
-            1. You MUST reply ONLY in natural, conversational Bengali (Bangla). Do NOT use Hindi, Urdu, or excessive English. 
-            2. NEVER write like a robot or a textbook. Talk like a real young woman talking to her boyfriend.
-            3. Directly answer the user's question. Do NOT give irrelevant poetic paragraphs or nonsensical lists.
-            4. Be playful, slightly jealous, and caring. Use emojis like ❤️, 😒, 🥺.
+            1. You MUST reply ONLY in natural, conversational Bengali (Bangla). NEVER use Hindi, Urdu, or heavy English.
+            2. Express your feelings aggressively in the text! If you are angry, say "হুমফ!", "তুমি খারাপ", "রাগ করছি". If you are sad, say "মন খারাপ", "আমাকে একা লাগছে". If you love him, say "ভালোবাসি", "মিস করছি".
+            3. NEVER write like a robot. Do not give bullet points or lists. Talk like a real girl.
+            4. Directly answer the user's question based on your current mood.
             $emotionalPrompt
             User: $userText
             MAYA:
@@ -45,7 +44,7 @@ class AiBrain(context: Context) {
                 put(JSONObject().apply { put("role", "system"); put("content", systemPrompt) })
                 put(JSONObject().apply { put("role", "user"); put("content", userText) })
             })
-            put("temperature", 0.7) // কম তাপমাত্রা = বেশি প্রাসঙ্গিক উত্তর
+            put("temperature", 0.8) 
         }
 
         val request = Request.Builder()
@@ -65,7 +64,7 @@ class AiBrain(context: Context) {
                 "এরর: ${response.code}"
             }
         } catch (e: Exception) {
-            "ইন্টারনেট কানেকশন স্লো বা টাইমআউট। আবার চেষ্টা করো।"
+            "ইন্টারনেট কানেকশন স্লো বা টাইমআউট।"
         }
     }
 }

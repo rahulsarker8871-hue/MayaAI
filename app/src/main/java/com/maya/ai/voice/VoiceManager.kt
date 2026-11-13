@@ -61,15 +61,26 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
             return@withContext
         }
 
-        val pace = when (emotion) { "happy" -> 1.15; "sad" -> 0.9; "angry" -> 1.1; else -> 1.0 }
+        // আবেগ অনুযায়ী কণ্ঠস্বরের পিচ এবং গতি পরিবর্তন
+        var pitch = 0.0
+        var pace = 1.0
+        var loudness = 1.0
 
-        // bulbul:v3 এবং বাংলা মেয়েলি কণ্ঠ 'roopa' ব্যবহার করা হলো
+        when (emotion) {
+            "happy", "love" -> { pitch = 0.25; pace = 1.1; loudness = 1.2 } // মিষ্টি, দ্রুত ও উঁচু
+            "angry" -> { pitch = -0.1; pace = 1.15; loudness = 1.5 } // ভারী, দ্রুত ও জোরে (রাগ)
+            "sad" -> { pitch = -0.3; pace = 0.85; loudness = 0.9 } // নিচু, ধীর ও কোমল (দুঃখ)
+            else -> { pitch = 0.0; pace = 1.0; loudness = 1.0 }
+        }
+
         val json = JSONObject().apply {
             put("text", text)
             put("target_language_code", "bn-IN")
             put("speaker", "roopa") 
             put("model", "bulbul:v3")
+            put("pitch", pitch)
             put("pace", pace)
+            put("loudness", loudness)
         }
 
         val request = Request.Builder()
