@@ -12,6 +12,7 @@ import android.speech.SpeechRecognizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
+import okio.ByteString
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -78,11 +79,11 @@ class VoiceManager(private val context: Context) {
                     webSocket.send("Path: ssml\r\nX-RequestId: $ssmlId\r\nX-Timestamp: ${System.currentTimeMillis()}\r\nContent-Type: application/ssml+xml\r\n\r\n$ssml")
                 }
 
-                override fun onMessage(webSocket: WebSocket, bytes: ByteArray) {
+                // OkHttp-তে বাইনারি ডেটার জন্য ByteString ব্যবহার করতে হয়
+                override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
                     val audioFile = File(context.cacheDir, "maya_edge_tts.mp3")
-                    FileOutputStream(audioFile).use { it.write(bytes) }
+                    FileOutputStream(audioFile).use { it.write(bytes.toByteArray()) }
                     
-                    // এখানে Handler ব্যবহার করা হয়েছে যাতে অ্যাপ ক্র্যাশ না করে
                     Handler(Looper.getMainLooper()).post {
                         mediaPlayer?.release()
                         mediaPlayer = MediaPlayer().apply {
