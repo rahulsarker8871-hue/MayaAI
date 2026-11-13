@@ -31,21 +31,40 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
     fun setApiKey(key: String) = aiBrain.saveApiKey(key)
     fun getApiKey() = aiBrain.getApiKey()
 
+    fun setTtsApiKey(key: String) {
+        getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
+            .edit().putString("sarvam_key", key).apply()
+    }
+    fun getTtsApiKey(): String {
+        return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
+            .getString("sarvam_key", "") ?: ""
+    }
+
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
         _messages.value = _messages.value + ChatMessage(text, true)
         _isLoading.value = true
 
         emotionalEngine.analyzeUserMessage(text)
-        _currentMood.value = emotionalEngine.getCurrentMood()
+        val mood = emotionalEngine.getCurrentMood()
+        _currentMood.value = mood
+
+        val emotion = when {
+            mood.contains("রাগ") || mood.contains("ঈর্ষা") -> "angry"
+            mood.contains("দুঃখ") -> "sad"
+            mood.contains("ভালোবাসা") || mood.contains("খুশি") -> "happy"
+            else -> "neutral"
+        }
 
         viewModelScope.launch {
             val reply = aiBrain.generateReply(text, emotionalEngine.getEmotionalPrompt())
             _messages.value = _messages.value + ChatMessage(reply, false)
             _isLoading.value = false
             
-            // এখানে নতুন ফ্রি Edge TTS ফাংশনটি কল করা হলো
-            voiceManager.speakWithEdgeTts(reply)
+            val ttsKey = getTtsApiKey()
+            if (ttsKey.isNotEmpty()) {
+                voiceManager.speakWithSarvam(reply, ttsKey, emotion)
+            }
         }
     }
 

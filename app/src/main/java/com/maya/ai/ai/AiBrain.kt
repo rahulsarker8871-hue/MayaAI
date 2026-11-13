@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit
 class AiBrain(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("maya_prefs", Context.MODE_PRIVATE)
     
-    // টাইমআউট বাড়িয়ে ৬০ সেকেন্ড করা হলো
     private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)

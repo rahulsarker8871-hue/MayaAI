@@ -32,6 +32,7 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var input by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(viewModel.getApiKey().isEmpty()) }
     var apiKeyInput by remember { mutableStateOf(viewModel.getApiKey()) }
+    var sarvamKeyInput by remember { mutableStateOf(viewModel.getTtsApiKey()) }
 
     Scaffold(
         containerColor = Color(0xFF0D0D1A),
@@ -86,12 +87,21 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     OutlinedTextField(
                         value = apiKeyInput, onValueChange = { apiKeyInput = it },
                         label = { Text("OpenRouter API Key (Brain)") },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = sarvamKeyInput, onValueChange = { sarvamKeyInput = it },
+                        label = { Text("Sarvam AI Key (Voice)") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.setApiKey(apiKeyInput); showSettings = false }) { Text("Save") }
+                TextButton(onClick = { 
+                    viewModel.setApiKey(apiKeyInput)
+                    viewModel.setTtsApiKey(sarvamKeyInput)
+                    showSettings = false 
+                }) { Text("Save") }
             }
         )
     }
