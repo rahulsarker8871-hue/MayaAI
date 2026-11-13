@@ -32,6 +32,7 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var input by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(viewModel.getApiKey().isEmpty()) }
     var apiKeyInput by remember { mutableStateOf(viewModel.getApiKey()) }
+    var fishKeyInput by remember { mutableStateOf(viewModel.getTtsApiKey()) }
 
     Scaffold(
         containerColor = Color(0xFF0D0D1A),
@@ -48,66 +49,29 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFE91E63))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0D0D1A),
-                    titleContentColor = Color(0xFFE91E63)
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D0D1A), titleContentColor = Color(0xFFE91E63))
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 12.dp)
-        ) {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 12.dp)) {
+            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
                 items(messages) { msg -> ChatBubble(msg) }
-                if (isLoading) {
-                    item {
-                        Text("মায়া ভাবছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp)
-                    }
-                }
-                if (isListening) {
-                    item {
-                        Text("মায়া শুনছে... 🎙️", color = Color(0xFFE91E63), modifier = Modifier.padding(8.dp), fontSize = 12.sp)
-                    }
-                }
+                if (isLoading) { item { Text("মায়া ভাবছে...", color = Color.Gray, modifier = Modifier.padding(8.dp), fontSize = 12.sp) } }
+                if (isListening) { item { Text("মায়া শুনছে... 🎙️", color = Color(0xFFE91E63), modifier = Modifier.padding(8.dp), fontSize = 12.sp) } }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
+                    value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f),
                     placeholder = { Text("মায়ার সাথে কথা বলো...", color = Color.Gray) },
                     shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFFE91E63), unfocusedBorderColor = Color.Gray
-                    )
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color(0xFFE91E63), unfocusedBorderColor = Color.Gray)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                
-                IconButton(
-                    onClick = { 
-                        if (isListening) viewModel.stopListening() else viewModel.startListening() 
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.Mic, 
-                        contentDescription = "Mic", 
-                        tint = if (isListening) Color.Red else Color(0xFFE91E63)
-                    )
+                IconButton(onClick = { if (isListening) viewModel.stopListening() else viewModel.startListening() }) {
+                    Icon(Icons.Default.Mic, contentDescription = "Mic", tint = if (isListening) Color.Red else Color(0xFFE91E63))
                 }
-                
-                IconButton(
-                    onClick = { viewModel.sendMessage(input); input = "" },
-                    enabled = !isLoading && !isListening
-                ) {
+                IconButton(onClick = { viewModel.sendMessage(input); input = "" }, enabled = !isLoading && !isListening) {
                     Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFFE91E63))
                 }
             }
@@ -121,18 +85,19 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
             text = {
                 Column {
                     OutlinedTextField(
-                        value = apiKeyInput,
-                        onValueChange = { apiKeyInput = it },
+                        value = apiKeyInput, onValueChange = { apiKeyInput = it },
                         label = { Text("OpenRouter API Key (Brain)") },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = fishKeyInput, onValueChange = { fishKeyInput = it },
+                        label = { Text("Fish Audio API Key (Voice)") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = { 
-                    viewModel.setApiKey(apiKeyInput)
-                    showSettings = false 
-                }) { Text("Save") }
+                TextButton(onClick = { viewModel.setApiKey(apiKeyInput); viewModel.setTtsApiKey(fishKeyInput); showSettings = false }) { Text("Save") }
             }
         )
     }
@@ -142,14 +107,7 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
 fun ChatBubble(msg: ChatMessage) {
     val alignment = if (msg.isUser) Alignment.CenterEnd else Alignment.CenterStart
     val bgColor = if (msg.isUser) Color(0xFFE91E63) else Color(0xFF2A2A4A)
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        contentAlignment = alignment
-    ) {
-        Text(
-            text = msg.text,
-            color = Color.White,
-            modifier = Modifier.background(bgColor, RoundedCornerShape(16.dp)).padding(12.dp).widthIn(max = 280.dp)
-        )
+    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = alignment) {
+        Text(text = msg.text, color = Color.White, modifier = Modifier.background(bgColor, RoundedCornerShape(16.dp)).padding(12.dp).widthIn(max = 280.dp))
     }
 }

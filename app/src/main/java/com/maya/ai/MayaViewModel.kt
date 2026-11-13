@@ -31,28 +31,32 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
     fun setApiKey(key: String) = aiBrain.saveApiKey(key)
     fun getApiKey() = aiBrain.getApiKey()
 
+    fun setTtsApiKey(key: String) {
+        getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
+            .edit().putString("fish_api_key", key).apply()
+    }
+    fun getTtsApiKey(): String {
+        return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE)
+            .getString("fish_api_key", "") ?: ""
+    }
+
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
         _messages.value = _messages.value + ChatMessage(text, true)
         _isLoading.value = true
 
         emotionalEngine.analyzeUserMessage(text)
-        val mood = emotionalEngine.getCurrentMood()
-        _currentMood.value = mood
-
-        // মুড অনুযায়ী ভয়েসের ইমোশন নির্ধারণ
-        val voiceEmotion = when {
-            mood.contains("রাগ") || mood.contains("ঈর্ষা") -> "angry"
-            mood.contains("দুঃখ") -> "sad"
-            mood.contains("ভালোবাসা") || mood.contains("খুশি") -> "happy"
-            else -> "normal"
-        }
+        _currentMood.value = emotionalEngine.getCurrentMood()
 
         viewModelScope.launch {
             val reply = aiBrain.generateReply(text, emotionalEngine.getEmotionalPrompt())
             _messages.value = _messages.value + ChatMessage(reply, false)
             _isLoading.value = false
-            voiceManager.speakWithEdgeTts(reply, voiceEmotion)
+            
+            val ttsKey = getTtsApiKey()
+            if (ttsKey.isNotEmpty()) {
+                voiceManager.speakWithFishAudio(reply, ttsKey)
+            }
         }
     }
 
