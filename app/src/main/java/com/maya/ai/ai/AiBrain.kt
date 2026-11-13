@@ -18,14 +18,14 @@ class AiBrain(context: Context) {
     fun getApiKey(): String { return prefs.getString("api_key", "") ?: "" }
 
     suspend fun generateReply(userText: String): String = withContext(Dispatchers.IO) {
-        val apiKey = getApiKey().trim() // স্পেস থাকলে মুছে ফেলবে
+        val apiKey = getApiKey().trim()
         if (apiKey.isEmpty()) return@withContext "দয়া করে সেটিংস থেকে তোমার API Key দাও।"
 
         val prompt = "You are MAYA, a loving, caring, and playful virtual girlfriend. You speak in natural Bengali. Be affectionate and emotionally expressive. Reply to: $userText"
         
         val json = JSONObject().apply {
-            // সম্পূর্ণ ফ্রি এবং সচল মডেল
-            put("model", "google/gemma-2-9b-it:free") 
+            // সচল ও বহুভাষিক ফ্রি মডেল
+            put("model", "meta-llama/llama-3.3-70b-instruct:free") 
             put("messages", JSONArray().apply {
                 put(JSONObject().apply { put("role", "user"); put("content", prompt) })
             })
@@ -45,7 +45,6 @@ class AiBrain(context: Context) {
                 val resJson = JSONObject(responseBody)
                 resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
             } else {
-                // আসল এররটা কী, সেটা দেখাবে
                 "এরর: ${response.code} - $responseBody"
             }
         } catch (e: Exception) {
