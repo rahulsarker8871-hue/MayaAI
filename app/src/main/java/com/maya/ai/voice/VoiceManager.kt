@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -28,16 +30,14 @@ class VoiceManager(private val context: Context) {
         }
     }
 
-    // emotional: "happy", "sad", "angry", "normal"
     suspend fun speakWithEdgeTts(text: String, emotional: String = "normal") = withContext(Dispatchers.IO) {
         val client = OkHttpClient()
         
-        // মুড অনুযায়ী গতি (Rate) ও সুর (Pitch) পরিবর্তন
         val rate = when(emotional) {
-            "happy" -> "+15%"  // খুশি হলে একটু দ্রুত ও উঁচু সুরে
-            "sad" -> "-10%"    // দুঃখিত হলে ধীরে ও নিচু সুরে
-            "angry" -> "+5%"   // রাগলে একটু দ্রুত
-            else -> "+0%"      // স্বাভাবিক
+            "happy" -> "+15%"
+            "sad" -> "-10%"
+            "angry" -> "+5%"
+            else -> "+0%"
         }
         val pitch = when(emotional) {
             "happy" -> "+10Hz"
@@ -60,7 +60,6 @@ class VoiceManager(private val context: Context) {
             })
         }
 
-        // SSML-এ Rate ও Pitch যুক্ত করা হলো
         val ssml = """
             <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='bn-BD'>
                 <voice name='bn-BD-NabanitaNeural'>
@@ -82,7 +81,9 @@ class VoiceManager(private val context: Context) {
                 override fun onMessage(webSocket: WebSocket, bytes: ByteArray) {
                     val audioFile = File(context.cacheDir, "maya_edge_tts.mp3")
                     FileOutputStream(audioFile).use { it.write(bytes) }
-                    withContext(Dispatchers.Main) {
+                    
+                    // এখানে Handler ব্যবহার করা হয়েছে যাতে অ্যাপ ক্র্যাশ না করে
+                    Handler(Looper.getMainLooper()).post {
                         mediaPlayer?.release()
                         mediaPlayer = MediaPlayer().apply {
                             setDataSource(audioFile.absolutePath)
