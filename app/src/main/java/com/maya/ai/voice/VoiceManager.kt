@@ -9,6 +9,7 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
@@ -37,20 +38,13 @@ class VoiceManager(private val context: Context) {
     }
 
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
-        if (apiKey.isEmpty()) return@withContext
+        if (apiKey.isEmpty()) {
+            showToast("API Key খালি আছে! সেটিংসে গিয়ে দিন।")
+            return@withContext
+        }
 
-        val pitch = when (emotion) {
-            "happy" -> 0.4f   
-            "sad" -> 0.1f
-            "angry" -> 0.3f
-            else -> 0.2f
-        }
-        val pace = when (emotion) {
-            "happy" -> 1.2f
-            "sad" -> 0.9f
-            "angry" -> 1.1f
-            else -> 1.0f
-        }
+        val pitch = when (emotion) { "happy" -> 0.4f; "sad" -> 0.1f; "angry" -> 0.3f; else -> 0.2f }
+        val pace = when (emotion) { "happy" -> 1.2f; "sad" -> 0.9f; "angry" -> 1.1f; else -> 1.0f }
 
         val json = JSONObject().apply {
             put("text", text)
@@ -59,12 +53,12 @@ class VoiceManager(private val context: Context) {
             put("pitch", pitch)
             put("pace", pace)
             put("loudness", 1.5)
-            put("model", "bulbul:v1") // ফ্রি এবং সচল মডেল
+            put("model", "bulbul:v1")
         }
 
         val request = Request.Builder()
             .url("https://api.sarvam.ai/text-to-speech")
-            .addHeader("api-subscription-key", apiKey)
+            .addHeader("api-subscription-key", apiKey.trim())
             .addHeader("Content-Type", "application/json")
             .post(json.toString().toRequestBody("application/json".toMediaType()))
             .build()
@@ -72,6 +66,7 @@ class VoiceManager(private val context: Context) {
         try {
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string()
+            
             if (response.isSuccessful && responseBody != null) {
                 val resJson = JSONObject(responseBody)
                 val base64Audio = resJson.getJSONArray("audios").getString(0)
@@ -80,7 +75,7 @@ class VoiceManager(private val context: Context) {
                 val audioFile = File(context.cacheDir, "maya_sarvam.wav")
                 FileOutputStream(audioFile).use { it.write(audioBytes) }
 
-                Handler(Looper.getMainLooper()).post {
+                withContext(Dispatchers.Main) {
                     mediaPlayer?.release()
                     mediaPlayer = MediaPlayer().apply {
                         setDataSource(audioFile.absolutePath)
@@ -88,9 +83,18 @@ class VoiceManager(private val context: Context) {
                         start()
                     }
                 }
+            } else {
+                // যদি API এরর করে, তবে স্ক্রিনে দেখাবে কী এরর
+                showToast("Sarvam Error: ${response.code} - $responseBody")
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            showToast("Network Error: ${e.message}")
+        }
+    }
+
+    private suspend fun showToast(msg: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
         }
     }
 
