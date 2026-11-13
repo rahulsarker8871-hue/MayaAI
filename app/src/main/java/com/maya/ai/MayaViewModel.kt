@@ -21,13 +21,10 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
         listOf(ChatMessage("হ্যালো! আমি মায়া। আজ তুমি কেমন আছো?", false))
     )
     val messages: StateFlow<List<ChatMessage>> = _messages
-
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
-
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening
-
     private val _currentMood = MutableStateFlow(emotionalEngine.getCurrentMood())
     val currentMood: StateFlow<String> = _currentMood
 
@@ -40,39 +37,33 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
         _isLoading.value = true
 
         emotionalEngine.analyzeUserMessage(text)
-        _currentMood.value = emotionalEngine.getCurrentMood()
+        val mood = emotionalEngine.getCurrentMood()
+        _currentMood.value = mood
+
+        // মুড অনুযায়ী ভয়েসের ইমোশন নির্ধারণ
+        val voiceEmotion = when {
+            mood.contains("রাগ") || mood.contains("ঈর্ষা") -> "angry"
+            mood.contains("দুঃখ") -> "sad"
+            mood.contains("ভালোবাসা") || mood.contains("খুশি") -> "happy"
+            else -> "normal"
+        }
 
         viewModelScope.launch {
             val reply = aiBrain.generateReply(text, emotionalEngine.getEmotionalPrompt())
             _messages.value = _messages.value + ChatMessage(reply, false)
             _isLoading.value = false
-            
-            // Edge TTS দিয়ে ভয়েস প্লে করা (কোনো API Key লাগে না)
-            voiceManager.speakWithEdgeTts(reply)
+            voiceManager.speakWithEdgeTts(reply, voiceEmotion)
         }
     }
 
     fun startListening() {
         _isListening.value = true
         voiceManager.startListening(
-            onResult = { text ->
-                _isListening.value = false
-                sendMessage(text)
-            },
-            onError = { error ->
-                _isListening.value = false
-                _messages.value = _messages.value + ChatMessage(error, false)
-            }
+            onResult = { text -> _isListening.value = false; sendMessage(text) },
+            onError = { error -> _isListening.value = false; _messages.value = _messages.value + ChatMessage(error, false) }
         )
     }
 
-    fun stopListening() {
-        _isListening.value = false
-        voiceManager.stopListening()
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        voiceManager.destroy()
-    }
+    fun stopListening() { _isListening.value = false; voiceManager.stopListening() }
+    override fun onCleared() { super.onCleared(); voiceManager.destroy() }
 }
