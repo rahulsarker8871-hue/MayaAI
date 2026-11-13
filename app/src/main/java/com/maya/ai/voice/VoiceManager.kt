@@ -9,6 +9,7 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,11 +19,14 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-class VoiceManager(private val context: Context) {
+class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
     private var speechRecognizer: SpeechRecognizer? = null
     private var mediaPlayer: MediaPlayer? = null
+    private var nativeTts: TextToSpeech? = null
+    private var isNativeTtsReady = false
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -32,27 +36,46 @@ class VoiceManager(private val context: Context) {
     init {
         try {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+            nativeTts = TextToSpeech(context, this)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            // ব্যাকআপ ফোনের নিজস্ব TTS সেটআপ
+            val locale = Locale("bn", "IN")
+            if (nativeTts?.isLanguageAvailable(locale) == TextToSpeech.LANG_AVAILABLE) {
+                nativeTts?.language = locale
+            } else {
+                nativeTts?.language = Locale.US
+            }
+            isNativeTtsReady = true
+        }
+    }
+
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
         if (apiKey.isEmpty()) {
-            showToast("API Key খালি আছে!")
+            showToast("Sarvam API Key খালি!")
+            speakNative(text)
             return@withContext
         }
 
-        // Sarvam-এর নতুন নিয়ম অনুযায়ী প্যারামিটার
+        // bulbul:v3 এর জন্য সঠিক প্যারামিটার
+        val pace = when (emotion) { 
+            "happy" -> 1.2
+            "sad" -> 0.9
+            "angry" -> 1.1
+            else -> 1.0 
+        }
+
         val json = JSONObject().apply {
             put("text", text)
-            put("target_language_code", "bn-IN")
-            put("speaker", "anushka") // bulbul:v2 এর জন্য মিষ্টি মেয়েলি ভয়েস
-            put("model", "bulbul:v2")   // আপডেট করা মডেল
-            put("pace", 1.1)           // কথা বলার গতি (স্বাভাবিকের চেয়ে একটু দ্রুত)
-            // pitch এবং loudness শুধু bulbul:v2 তে কাজ করে, তাই সেগুলো রাখা হলো
-            put("pitch", 0.2) 
-            put("loudness", 1.2)
+            put("target_language_code", "bn-IN") // বাংলা (ভারত)
+            put("speaker", "anushka")            // মিষ্টি মেয়েলি ভয়েস
+            put("model", "bulbul:v3")            // স্ট্যাবল ও রিকমেন্ডেড মডেল
+            put("pace", pace)                    // v3 এর রেঞ্জ: 0.5 থেকে 2.0
         }
 
         val request = Request.Builder()
@@ -83,17 +106,27 @@ class VoiceManager(private val context: Context) {
                     }
                 }
             } else {
-                // যদি এখনো এরর আসে, তবে স্ক্রিনে দেখাবে
-                showToast("Sarvam Error: ${response.code} - $responseBody")
+                // এরর হলে টোস্ট মেসেজ দেখাবে এবং ফোনের TTS দিয়ে কথা বলবে
+                showToast("Sarvam Error: ${response.code}. ফোনের ভয়েস ব্যবহার হচ্ছে।")
+                speakNative(text)
             }
         } catch (e: Exception) {
             showToast("Network Error: ${e.message}")
+            speakNative(text)
         }
     }
 
     private suspend fun showToast(msg: String) {
         withContext(Dispatchers.Main) {
             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun speakNative(text: String) {
+        if (isNativeTtsReady) {
+            Handler(Looper.getMainLooper()).post {
+                nativeTts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "maya")
+            }
         }
     }
 
@@ -120,5 +153,5 @@ class VoiceManager(private val context: Context) {
     }
 
     fun stopListening() { speechRecognizer?.stopListening() }
-    fun destroy() { speechRecognizer?.destroy(); mediaPlayer?.release() }
+    fun destroy() { speechRecognizer?.destroy(); mediaPlayer?.release(); nativeTts?.shutdown() }
 }
