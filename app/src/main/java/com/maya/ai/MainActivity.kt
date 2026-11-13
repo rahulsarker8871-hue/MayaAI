@@ -3,18 +3,16 @@ package com.maya.ai
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.activity.viewModels
+import com.maya.ai.ui.MayaChatScreen
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: MayaViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF0D0D1A)) {
-                MayaChatScreen()
-            }
+            MayaChatScreen(viewModel = viewModel)
         }
     }
 }
