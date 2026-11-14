@@ -29,19 +29,19 @@ class AiBrain(context: Context) {
             CHAT HISTORY: $history
             
             IMPORTANT RULES:
-            1. Understand common Bengali/English slang (e.g., "ki shit choltache" means "what's going on", "ki obostha" means "how are you"). Answer naturally without overreacting.
-            2. Do NOT assume the user is screaming or in danger unless they explicitly say so.
-            3. If the user asks "what are you doing" or "what's going on", reply normally (e.g., "তোমার সাথে কথা বলছি", "তোমার কথা ভাবছিলাম").
+            1. Understand common Bengali/English slang perfectly. 
+            2. If the user says "ki shit choltache", "ki shit hoy", "ki obostha", "what's up", or similar slang, DO NOT overreact or think they are in danger. Treat it as a casual "What are you doing?".
+            3. Reply casually to slang (e.g., "এমনি বসে আছি", "তোমার কথা ভাবছিলাম", "কিছু না, তুমি বলো কী করছো?").
+            4. If the user says "shit kal habijabi" (meaning random things), reply playfully.
             
             CRITICAL INSTRUCTIONS FOR PHONE TASKS (Append at the end if needed):
-            - Open app: [ACTION: OPEN_APP:app_name] (e.g., youtube, spotify, gallery)
+            - Open app: [ACTION: OPEN_APP:app_name] 
             - YouTube Search: [ACTION: YOUTUBE_SEARCH:search_query]
             - WhatsApp Message: [ACTION: WHATSAPP_MSG:01712345678:Hello]
             - Play/Pause Media: [ACTION: MEDIA_PLAY_PAUSE]
             - Next Track: [ACTION: MEDIA_NEXT]
             - Set Alarm: [ACTION: SET_ALARM:HH:MM]
             - Battery: [ACTION: GET_BATTERY]
-            - Call: [ACTION: CALL:01712345678]
             
             $emotionalPrompt
         """.trimIndent()
@@ -52,7 +52,7 @@ class AiBrain(context: Context) {
                 put(JSONObject().apply { put("role", "system"); put("content", systemPrompt) })
                 put(JSONObject().apply { put("role", "user"); put("content", userText) })
             })
-            put("temperature", 0.6) // তাপমাত্রা কমানো হলো যাতে বেশি বাড়াবাড়ি না করে
+            put("temperature", 0.6)
         }
 
         val request = Request.Builder().url("https://openrouter.ai/api/v1/chat/completions").addHeader("Authorization", "Bearer $apiKey").addHeader("Content-Type", "application/json").post(json.toString().toRequestBody("application/json".toMediaType())).build()

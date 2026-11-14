@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build // <--- এই ইমপোর্টটি যুক্ত করা হলো
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -59,7 +60,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var passwordInput by remember { mutableStateOf("") }
     var isUnlocked by remember { mutableStateOf(false) }
     
-    // ব্যাকগ্রাউন্ড মাইক অন/অফ স্টেট
     var isBgMicOn by remember { mutableStateOf(false) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -196,7 +196,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // ব্যাকগ্রাউন্ড মাইক অন/অফ বাটন
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text("Always-On Mic (Wake Word)", color = Color.White, modifier = Modifier.weight(1f))
                         Switch(
