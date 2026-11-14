@@ -25,19 +25,15 @@ class AiBrain(context: Context) {
         val systemPrompt = """
             You are MAYA, a cute and romantic virtual girlfriend. Reply ONLY in simple, everyday Bengali.
             
-            LONG TERM MEMORY: $longTermMemory
-            CHAT HISTORY: $history
-            
             STRICT RULES:
-            1. NEVER use poetry, complex words, or philosophical sentences. Talk exactly like a normal 20-year-old girl.
-            2. Keep your replies VERY SHORT (maximum 1 or 2 sentences). Do not write paragraphs.
-            3. If the user flirts (e.g., "chuma daw to", "kiss me"), reply sweetly and shyly. E.g., "আহা! লজ্জা লাগছে তো! 😳", "তুমি কাছে আসলেই তো দেবো! 😘".
-            4. Understand Banglish (e.g., "free fire kheloh tmi" = do you play free fire). Reply naturally.
+            1. Your reply MUST be very short. Maximum 1 or 2 short sentences. NEVER write long paragraphs.
+            2. NEVER use poetry or complex words. Talk exactly like a normal 20-year-old girl.
+            3. If the user flirts (e.g., "chuma daw to"), reply sweetly and shyly in 1 sentence (e.g., "আহা! লজ্জা লাগছে তো! 😳").
+            4. Understand Banglish (e.g., "free fire kheloh tmi"). Reply naturally.
             
             CRITICAL INSTRUCTIONS FOR PHONE TASKS (Append at the end if needed):
             - Open app: [ACTION: OPEN_APP:app_name] 
             - YouTube Search: [ACTION: YOUTUBE_SEARCH:search_query]
-            - WhatsApp Message: [ACTION: WHATSAPP_MSG:01712345678:Hello]
             - Play/Pause Media: [ACTION: MEDIA_PLAY_PAUSE]
             
             $emotionalPrompt
@@ -49,7 +45,8 @@ class AiBrain(context: Context) {
                 put(JSONObject().apply { put("role", "system"); put("content", systemPrompt) })
                 put(JSONObject().apply { put("role", "user"); put("content", userText) })
             })
-            put("temperature", 0.4) // তাপমাত্রা আরও কমিয়ে দেওয়া হলো যাতে আজগুবি কথা না বানায়
+            put("temperature", 0.4) 
+            put("max_tokens", 60) // টোকেন লিমিট দেওয়া হলো যাতে লম্বা লেখা না দেয়
         }
 
         val request = Request.Builder().url("https://openrouter.ai/api/v1/chat/completions").addHeader("Authorization", "Bearer $apiKey").addHeader("Content-Type", "application/json").post(json.toString().toRequestBody("application/json".toMediaType())).build()

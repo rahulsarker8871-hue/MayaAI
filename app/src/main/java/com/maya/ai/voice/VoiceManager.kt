@@ -37,9 +37,7 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
         try {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
             nativeTts = TextToSpeech(context, this)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     override fun onInit(status: Int) {
@@ -47,9 +45,7 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
             val locale = Locale("bn", "IN")
             if (nativeTts?.isLanguageAvailable(locale) == TextToSpeech.LANG_AVAILABLE) {
                 nativeTts?.language = locale
-            } else {
-                nativeTts?.language = Locale.US
-            }
+            } else { nativeTts?.language = Locale.US }
             isNativeTtsReady = true
         }
     }
@@ -61,24 +57,23 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
             return@withContext
         }
 
-        var pitch = 0.0
-        var pace = 1.0
-        var loudness = 1.0
+        // পিচ এবং স্পিড নরমাল করা হলো যাতে ভয়েস ক্লিয়ার শোনায়
+        var pitch = 0.0f
+        var pace = 1.0f
 
         when (emotion) {
-            "happy", "love" -> { pitch = 0.25; pace = 1.1; loudness = 1.2 }
-            "angry" -> { pitch = -0.1; pace = 1.15; loudness = 1.5 }
-            "sad" -> { pitch = -0.3; pace = 0.85; loudness = 0.9 }
+            "happy", "love" -> { pitch = 0.1f; pace = 1.05f }
+            "angry" -> { pitch = -0.1f; pace = 1.1f }
+            "sad" -> { pitch = -0.2f; pace = 0.9f }
         }
 
         val json = JSONObject().apply {
             put("text", text)
             put("target_language_code", "bn-IN")
-            put("speaker", "roopa") 
+            put("speaker", "anushka") // Anushka ভয়েসটি বেশি ক্লিয়ার
             put("model", "bulbul:v3")
             put("pitch", pitch)
             put("pace", pace)
-            put("loudness", loudness)
         }
 
         val request = Request.Builder()
@@ -113,18 +108,15 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
                 speakNative(text)
             }
         } catch (e: Exception) {
-            showToast("Network Error: ${e.message}")
+            showToast("Network Error")
             speakNative(text)
         }
     }
 
     private suspend fun showToast(msg: String) {
-        withContext(Dispatchers.Main) {
-            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-        }
+        withContext(Dispatchers.Main) { Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() }
     }
 
-    // এটি পাবলিক করা হলো যাতে ফ্লোটিং বাবল এক্সেস করতে পারে
     fun speakNative(text: String) {
         if (isNativeTtsReady) {
             Handler(Looper.getMainLooper()).post {
