@@ -52,28 +52,17 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
 
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
         if (apiKey.isEmpty()) {
-            showToast("API Key খালি!")
+            showToast("Sarvam API Key খালি!")
             speakNative(text)
             return@withContext
         }
 
-        // পিচ এবং স্পিড নরমাল করা হলো যাতে ভয়েস ক্লিয়ার শোনায়
-        var pitch = 0.0f
-        var pace = 1.0f
-
-        when (emotion) {
-            "happy", "love" -> { pitch = 0.1f; pace = 1.05f }
-            "angry" -> { pitch = -0.1f; pace = 1.1f }
-            "sad" -> { pitch = -0.2f; pace = 0.9f }
-        }
-
+        // bulbul:v2 এর জন্য সঠিক প্যারামিটার
         val json = JSONObject().apply {
             put("text", text)
             put("target_language_code", "bn-IN")
-            put("speaker", "anushka") // Anushka ভয়েসটি বেশি ক্লিয়ার
-            put("model", "bulbul:v3")
-            put("pitch", pitch)
-            put("pace", pace)
+            put("speaker", "anushka") 
+            put("model", "bulbul:v2") // v2 ব্যবহার করা হলো, এটি এরর দেয় না
         }
 
         val request = Request.Builder()
