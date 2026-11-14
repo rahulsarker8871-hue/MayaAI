@@ -9,7 +9,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border // <--- এই ইমপোর্টটি যুক্ত করা হলো
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -100,20 +101,38 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
             )
         }
     ) { padding ->
+        // রয়্যাল ও প্রিমিয়াম ব্যাকগ্রাউন্ড (মাল্টি-লেয়ার গ্রেডিয়েন্ট এবং গ্লোয়িং ইফেক্ট)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(colors = listOf(Color(0xFF0D0D1A), Color(0xFF1A1A2E), Color(0xFF0D0D1A))))
+                .background(Brush.verticalGradient(colors = listOf(Color(0xFF0F0C29), Color(0xFF302B63), Color(0xFF24243E))))
                 .padding(padding)
         ) {
+            // গ্লোয়িং ব্যাকগ্রাউন্ড ইফেক্ট
+            Box(
+                modifier = Modifier
+                    .size(300.dp)
+                    .align(Alignment.TopStart)
+                    .offset(x = (-50).dp, y = (-50).dp)
+                    .blur(80.dp)
+                    .background(Color(0x55E91E63), CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .size(300.dp)
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 50.dp, y = 50.dp)
+                    .blur(80.dp)
+                    .background(Color(0x553F51B5), CircleShape)
+            )
+
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-                
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(id = com.maya.ai.R.drawable.ic_launcher), 
                         contentDescription = "Maya Avatar",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(100.dp).scale(pulseScale).clip(CircleShape).background(Color(0xFF2A2A4A))
+                        modifier = Modifier.size(100.dp).scale(pulseScale).clip(CircleShape).border(2.dp, Color(0xFFE91E63), CircleShape)
                     )
                 }
 
@@ -133,14 +152,14 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
-                        .background(Color(0xFF1A1A2E), RoundedCornerShape(30.dp))
-                        .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(30.dp))
+                        .background(Color(0x33FFFFFF), RoundedCornerShape(30.dp))
+                        .border(1.dp, Color(0x55FFFFFF), RoundedCornerShape(30.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
                         value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f),
-                        placeholder = { Text("মায়ার সাথে কথা বলো...", color = Color.Gray) },
+                        placeholder = { Text("মায়ার সাথে কথা বলো...", color = Color.LightGray) },
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, focusedTextColor = Color.White, unfocusedTextColor = Color.White)
                     )
                     
@@ -196,8 +215,8 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
 @Composable
 fun GlassChatBubble(msg: ChatMessage) {
     val alignment = if (msg.isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val bgColor = if (msg.isUser) Color(0x33E91E63) else Color(0x1AFFFFFF)
-    val borderColor = if (msg.isUser) Color(0x55E91E63) else Color(0x33FFFFFF)
+    val bgColor = if (msg.isUser) Color(0x55E91E63) else Color(0x22FFFFFF)
+    val borderColor = if (msg.isUser) Color(0x88E91E63) else Color(0x44FFFFFF)
     
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = alignment) {
         Box(

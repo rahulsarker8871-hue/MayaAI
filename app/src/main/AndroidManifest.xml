@@ -6,18 +6,16 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- ব্যাকগ্রাউন্ড সার্ভিসের পারমিশন -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- ফ্লোটিং বাবলের পারমিশন -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <queries>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
-        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" android:host="wa.me" /></intent>
-        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" android:host="www.youtube.com" /></intent>
         <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
     </queries>
 
@@ -28,8 +26,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
-        <!-- সার্ভিসটি রেজিস্টার করা হলো -->
         <service android:name=".MayaBackgroundService" android:foregroundServiceType="microphone" android:exported="false" />
+        <!-- নতুন ফ্লোটিং বাবল সার্ভিস -->
+        <service android:name=".FloatingBubbleService" android:exported="false" />
     </application>
 </manifest>
