@@ -27,7 +27,7 @@ class AiBrain(context: Context) {
             LONG TERM MEMORY: $longTermMemory
             CHAT HISTORY: $history
             CRITICAL INSTRUCTIONS: If the user asks you to do a phone task, you MUST append the action tag at the end of your reply.
-            - Open app: [ACTION: OPEN_APP:com.google.android.youtube] (youtube=com.google.android.youtube, chrome=com.android.chrome, whatsapp=com.whatsapp, facebook=com.facebook.katana)
+            - Open app: [ACTION: OPEN_APP:app_name] (e.g., [ACTION: OPEN_APP:gallery], [ACTION: OPEN_APP:spotify], [ACTION: OPEN_APP:youtube], [ACTION: OPEN_APP:whatsapp])
             - Set Alarm: [ACTION: SET_ALARM:HH:MM] (24h format)
             - Battery: [ACTION: GET_BATTERY]
             - WiFi: [ACTION: OPEN_WIFI]

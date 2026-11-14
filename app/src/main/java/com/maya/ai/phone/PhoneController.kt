@@ -8,11 +8,53 @@ import android.provider.Settings
 import android.telephony.SmsManager
 
 class PhoneController(private val context: Context) {
-    fun openApp(packageName: String): String {
+
+    // ফোনের ভেতরের অ্যাপের নাম দিয়ে সার্চ করার ফাংশন
+    private fun findPackageByAppName(appName: String): String? {
+        val pm = context.packageManager
+        val mainIntent = Intent(Intent.ACTION_MAIN, null)
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = pm.queryIntentActivities(mainIntent, 0)
+        for (app in apps) {
+            val label = app.loadLabel(pm).toString().lowercase()
+            if (label.contains(appName.lowercase())) {
+                return app.activityInfo.packageName
+            }
+        }
+        return null
+    }
+
+    fun openApp(appNameOrPackage: String): String {
+        var packageName = appNameOrPackage.trim()
+        
+        // যদি সরাসরি প্যাকেজ নেম না দেওয়া হয়, তবে অ্যাপের নাম দিয়ে খুঁজবে
+        if (!packageName.contains(".")) {
+            val foundPackage = findPackageByAppName(packageName)
+            packageName = if (foundPackage != null) {
+                foundPackage
+            } else {
+                // কিছু কমন অ্যাপের জন্য ফলব্যাক ডিকশনারি
+                when(packageName.lowercase()) {
+                    "youtube", "ইউটিউব" -> "com.google.android.youtube"
+                    "whatsapp", "হোয়াটসঅ্যাপ" -> "com.whatsapp"
+                    "facebook", "ফেসবুক" -> "com.facebook.katana"
+                    "spotify", "স্পটিফাই" -> "com.spotify.music"
+                    "chrome", "ক্রোম" -> "com.android.chrome"
+                    else -> packageName
+                }
+            }
+        }
+
         return try {
             val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-            if (intent != null) { intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(intent); "অ্যাপটি খুলে দিচ্ছি।" } 
-            else "দুঃখিত, এই অ্যাপটি তোমার ফোনে খুঁজে পাচ্ছি না।"
+            if (intent != null) { 
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                "অ্যাপটি খুলে দিচ্ছি।" 
+            } 
+            else {
+                "দুঃখিত, '$appNameOrPackage' নামে কোনো অ্যাপ তোমার ফোনে খুঁজে পাচ্ছি না।"
+            }
         } catch (e: Exception) { "অ্যাপ খুলতে সমস্যা হচ্ছে।" }
     }
 

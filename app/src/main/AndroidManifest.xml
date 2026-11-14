@@ -11,11 +11,11 @@
     <queries>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
-        <package android:name="com.google.android.youtube" />
-        <package android:name="com.android.chrome" />
-        <package android:name="com.facebook.katana" />
-        <package android:name="com.whatsapp" />
-        <package android:name="com.instagram.android" />
+        <!-- এই লাইনটি মায়াকে ফোনের সব অ্যাপ দেখার এবং খোঁজার ক্ষমতা দেবে -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application android:allowBackup="true" android:icon="@drawable/ic_launcher" android:label="@string/app_name" android:supportsRtl="true" android:theme="@style/Theme.MayaAI" tools:targetApi="31">
