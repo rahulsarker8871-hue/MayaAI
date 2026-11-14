@@ -5,7 +5,10 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,7 +37,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isListening by viewModel.isListening.collectAsStateWithLifecycle()
-    val currentMood by viewModel.currentMood.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
     var input by remember { mutableStateOf("") }
@@ -42,15 +44,15 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var apiKeyInput by remember { mutableStateOf(viewModel.getApiKey()) }
     var sarvamKeyInput by remember { mutableStateOf(viewModel.getTtsApiKey()) }
 
-    // মাইক পারমিশন লঞ্চার
+    // পাসওয়ার্ড এবং আনলক স্টেট
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+    var isUnlocked by remember { mutableStateOf(false) }
+
     val recordAudioLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
-            if (isGranted) {
-                viewModel.startListening()
-            } else {
-                Toast.makeText(context, "মাইক ব্যবহার করতে পারমিশন দরকার!", Toast.LENGTH_SHORT).show()
-            }
+            if (isGranted) viewModel.startListening() else Toast.makeText(context, "মাইক পারমিশন দরকার!", Toast.LENGTH_SHORT).show()
         }
     )
 
@@ -59,9 +61,32 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
         topBar = {
             TopAppBar(
                 title = { 
-                    Column {
-                        Text("MAYA AI", fontWeight = FontWeight.Bold)
-                        Text("Mood: $currentMood", fontSize = 12.sp, color = Color.LightGray)
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        // AnimatedContent এর মাধ্যমে "N" থেকে "NURI X RAHUL" এ পরিবর্তন হবে
+                        AnimatedContent(
+                            targetState = isUnlocked,
+                            transitionSpec = {
+                                (scaleIn(initialScale = 0.5f, animationSpec = tween(500)) + fadeIn(animationSpec = tween(500)))
+                                    .togetherWith(scaleOut(targetScale = 0.5f, animationSpec = tween(500)) + fadeOut(animationSpec = tween(500)))
+                            }, label = "TitleAnimation"
+                        ) { unlocked ->
+                            if (!unlocked) {
+                                Text(
+                                    text = "N",
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFE91E63),
+                                    modifier = Modifier.clickable { showPasswordDialog = true }
+                                )
+                            } else {
+                                Text(
+                                    text = "NURI X RAHUL",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFE91E63)
+                                )
+                            }
+                        }
                     }
                 },
                 actions = {
@@ -69,7 +94,7 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFE91E63))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D0D1A), titleContentColor = Color(0xFFE91E63))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0D0D1A))
             )
         }
     ) { padding ->
@@ -96,17 +121,11 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 
-                // মাইক বাটনে ক্লিক করলে পারমিশন চেক করবে
                 IconButton(onClick = { 
-                    if (isListening) {
-                        viewModel.stopListening()
-                    } else {
-                        val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-                        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-                            viewModel.startListening()
-                        } else {
-                            recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
+                    if (isListening) viewModel.stopListening()
+                    else {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) viewModel.startListening()
+                        else recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
                 }) {
                     Icon(Icons.Default.Mic, contentDescription = "Mic", tint = if (isListening) Color.Red else Color(0xFFE91E63))
@@ -117,6 +136,33 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                 }
             }
         }
+    }
+
+    // পাসওয়ার্ড ডায়ালগ
+    if (showPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasswordDialog = false; passwordInput = "" },
+            title = { Text("Password Day") },
+            text = {
+                OutlinedTextField(
+                    value = passwordInput,
+                    onValueChange = { passwordInput = it },
+                    label = { Text("Enter Password") },
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (passwordInput == "rahul") { // এখানে পাসওয়ার্ড 
+                        showPasswordDialog = false
+                        isUnlocked = true // পাসওয়ার্ড সঠিক হলে NURI X RAHUL হয়ে যাবে
+                        passwordInput = ""
+                    } else {
+                        Toast.makeText(context, "ভুল পাসওয়ার্ড!", Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text("Unlock") }
+            }
+        )
     }
 
     if (showSettings) {
@@ -134,11 +180,7 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = { 
-                    viewModel.setApiKey(apiKeyInput)
-                    viewModel.setTtsApiKey(sarvamKeyInput)
-                    showSettings = false 
-                }) { Text("Save") }
+                TextButton(onClick = { viewModel.setApiKey(apiKeyInput); viewModel.setTtsApiKey(sarvamKeyInput); showSettings = false }) { Text("Save") }
             }
         )
     }
