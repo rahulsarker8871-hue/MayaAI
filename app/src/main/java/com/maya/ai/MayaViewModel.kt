@@ -43,13 +43,8 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setApiKey(key: String) = aiBrain.saveApiKey(key)
     fun getApiKey() = aiBrain.getApiKey()
-
-    fun setTtsApiKey(key: String) {
-        getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE).edit().putString("sarvam_key", key).apply()
-    }
-    fun getTtsApiKey(): String {
-        return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE).getString("sarvam_key", "") ?: ""
-    }
+    fun setTtsApiKey(key: String) { getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE).edit().putString("sarvam_key", key).apply() }
+    fun getTtsApiKey(): String { return getApplication<Application>().getSharedPreferences("maya_prefs", Application.MODE_PRIVATE).getString("sarvam_key", "") ?: "" }
 
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
@@ -85,6 +80,8 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
                     } else "কখন অ্যালার্ম দেব?"
                     "GET_BATTERY" -> phoneController.getBatteryLevel()
                     "OPEN_WIFI" -> phoneController.openWifiSettings()
+                    "CALL" -> if (parts.size > 1) phoneController.makeCall(parts[1]) else "নাম্বার দাওনি।"
+                    "SMS" -> if (parts.size > 2) phoneController.sendSms(parts[1], parts[2]) else "নাম্বার বা মেসেজ দাওনি।"
                     else -> ""
                 }
                 rawReply = rawReply.replace(actionMatch.value, "").trim()

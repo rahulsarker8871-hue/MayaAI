@@ -7,9 +7,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border // <--- এই ইমপোর্টটি যুক্ত করা হলো
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -55,7 +55,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var passwordInput by remember { mutableStateOf("") }
     var isUnlocked by remember { mutableStateOf(false) }
 
-    // মায়ার পালস অ্যানিমেশন (কথা বলার বা শোনার সময়)
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -72,7 +71,7 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     )
 
     Scaffold(
-        containerColor = Color.Transparent, // ব্যাকগ্রাউন্ড আমরা নিচে দিচ্ছি
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { 
@@ -101,36 +100,20 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
             )
         }
     ) { padding ->
-        // গ্রেডিয়েন্ট ব্যাকগ্রাউন্ড
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF0D0D1A), Color(0xFF1A1A2E), Color(0xFF0D0D1A))
-                    )
-                )
+                .background(Brush.verticalGradient(colors = listOf(Color(0xFF0D0D1A), Color(0xFF1A1A2E), Color(0xFF0D0D1A))))
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
                 
-                // মায়ার অবতার (Avatar)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                     Image(
-                        // এখানে আপনার একটি সুন্দর মেয়ের ছবি দিতে পারেন, আপাতত অ্যাপের আইকন দিচ্ছি
                         painter = painterResource(id = com.maya.ai.R.drawable.ic_launcher), 
                         contentDescription = "Maya Avatar",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(100.dp)
-                            .scale(pulseScale) // পালস অ্যানিমেশন
-                            .clip(CircleShape)
-                            .background(Color(0xFF2A2A4A))
+                        modifier = Modifier.size(100.dp).scale(pulseScale).clip(CircleShape).background(Color(0xFF2A2A4A))
                     )
                 }
 
@@ -144,11 +127,8 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     }
                 }
 
-                if (isLoading) {
-                    TypingIndicator()
-                }
+                if (isLoading) { TypingIndicator() }
 
-                // ইনপুট এরিয়া (Glassmorphism)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -159,16 +139,9 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = input, 
-                        onValueChange = { input = it }, 
-                        modifier = Modifier.weight(1f),
+                        value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f),
                         placeholder = { Text("মায়ার সাথে কথা বলো...", color = Color.Gray) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedTextColor = Color.White, 
-                            unfocusedTextColor = Color.White
-                        )
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, focusedTextColor = Color.White, unfocusedTextColor = Color.White)
                     )
                     
                     IconButton(onClick = { 
@@ -189,7 +162,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
         }
     }
 
-    // পাসওয়ার্ড ডায়ালগ (আগের মতোই)
     if (showPasswordDialog) {
         AlertDialog(
             onDismissRequest = { showPasswordDialog = false; passwordInput = "" },
@@ -204,7 +176,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
         )
     }
 
-    // সেটিংস ডায়ালগ (আগের মতোই)
     if (showSettings) {
         AlertDialog(
             onDismissRequest = { if(viewModel.getApiKey().isNotEmpty()) showSettings = false },
@@ -222,7 +193,6 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     }
 }
 
-// গ্লাসমরফিজম চ্যাট বাবল
 @Composable
 fun GlassChatBubble(msg: ChatMessage) {
     val alignment = if (msg.isUser) Alignment.CenterEnd else Alignment.CenterStart
@@ -242,7 +212,6 @@ fun GlassChatBubble(msg: ChatMessage) {
     }
 }
 
-// টাইপিং ইন্ডিকেটর (৩টি ডট অ্যানিমেশন)
 @Composable
 fun TypingIndicator() {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
