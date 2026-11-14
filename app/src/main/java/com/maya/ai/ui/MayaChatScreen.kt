@@ -1,6 +1,8 @@
 package com.maya.ai.ui
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maya.ai.ChatMessage
+import com.maya.ai.MayaBackgroundService
 import com.maya.ai.MayaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +58,9 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     var showPasswordDialog by remember { mutableStateOf(false) }
     var passwordInput by remember { mutableStateOf("") }
     var isUnlocked by remember { mutableStateOf(false) }
+    
+    // ব্যাকগ্রাউন্ড মাইক অন/অফ স্টেট
+    var isBgMicOn by remember { mutableStateOf(false) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -101,30 +107,14 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
             )
         }
     ) { padding ->
-        // রয়্যাল ও প্রিমিয়াম ব্যাকগ্রাউন্ড (মাল্টি-লেয়ার গ্রেডিয়েন্ট এবং গ্লোয়িং ইফেক্ট)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Brush.verticalGradient(colors = listOf(Color(0xFF0F0C29), Color(0xFF302B63), Color(0xFF24243E))))
                 .padding(padding)
         ) {
-            // গ্লোয়িং ব্যাকগ্রাউন্ড ইফেক্ট
-            Box(
-                modifier = Modifier
-                    .size(300.dp)
-                    .align(Alignment.TopStart)
-                    .offset(x = (-50).dp, y = (-50).dp)
-                    .blur(80.dp)
-                    .background(Color(0x55E91E63), CircleShape)
-            )
-            Box(
-                modifier = Modifier
-                    .size(300.dp)
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 50.dp, y = 50.dp)
-                    .blur(80.dp)
-                    .background(Color(0x553F51B5), CircleShape)
-            )
+            Box(modifier = Modifier.size(300.dp).align(Alignment.TopStart).offset(x = (-50).dp, y = (-50).dp).blur(80.dp).background(Color(0x55E91E63), CircleShape))
+            Box(modifier = Modifier.size(300.dp).align(Alignment.BottomEnd).offset(x = 50.dp, y = 50.dp).blur(80.dp).background(Color(0x553F51B5), CircleShape))
 
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
@@ -198,13 +188,35 @@ fun MayaChatScreen(viewModel: MayaViewModel) {
     if (showSettings) {
         AlertDialog(
             onDismissRequest = { if(viewModel.getApiKey().isNotEmpty()) showSettings = false },
-            title = { Text("API Settings") },
+            title = { Text("Settings") },
             text = {
                 Column {
                     OutlinedTextField(value = apiKeyInput, onValueChange = { apiKeyInput = it }, label = { Text("OpenRouter Key") }, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
                     OutlinedTextField(value = sarvamKeyInput, onValueChange = { sarvamKeyInput = it }, label = { Text("Sarvam AI Key") }, modifier = Modifier.fillMaxWidth())
+                    
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.clearHistory(); showSettings = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("Clear Chat History", color = Color.White) }
+                    
+                    // ব্যাকগ্রাউন্ড মাইক অন/অফ বাটন
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text("Always-On Mic (Wake Word)", color = Color.White, modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = isBgMicOn,
+                            onCheckedChange = { isOn ->
+                                isBgMicOn = isOn
+                                val intent = Intent(context, MayaBackgroundService::class.java)
+                                if (isOn) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent) else context.startService(intent)
+                                    Toast.makeText(context, "মাইক চালু হলো (বেবি ডাকলে কাজ করবে)", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    context.stopService(intent)
+                                    Toast.makeText(context, "মাইক বন্ধ হলো", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.clearHistory(); showSettings = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red), modifier = Modifier.fillMaxWidth()) { Text("Clear Chat History", color = Color.White) }
                 }
             },
             confirmButton = { TextButton(onClick = { viewModel.setApiKey(apiKeyInput); viewModel.setTtsApiKey(sarvamKeyInput); showSettings = false }) { Text("Save") } }

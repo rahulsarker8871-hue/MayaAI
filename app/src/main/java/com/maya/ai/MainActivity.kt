@@ -20,10 +20,8 @@ class MainActivity : ComponentActivity() {
     
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         val allGranted = permissions.values.all { it }
-        if (allGranted) {
-            checkOverlayPermission()
-        } else {
-            Toast.makeText(this, "সব পারমিশন দরকার!", Toast.LENGTH_LONG).show()
+        if (!allGranted) {
+            Toast.makeText(this, "কাজ করার জন্য পারমিশন দরকার!", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -49,25 +47,19 @@ class MainActivity : ComponentActivity() {
 
     private fun checkOverlayPermission() {
         if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "ফ্লোটিং বাবলের জন্য 'Display over other apps' পারমিশন দাও!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "ফ্লোটিং বাবলের জন্য পারমিশন দাও!", Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
             startActivity(intent)
         } else {
-            startServices()
+            startBubbleService() // শুধু বাবল সার্ভিস চালু হবে, মাইক সার্ভিস অটো চালু হবে না
         }
     }
 
-    private fun startServices() {
-        // ব্যাকগ্রাউন্ড ভয়েস সার্ভিস
-        val bgIntent = Intent(this, MayaBackgroundService::class.java)
-        // ফ্লোটিং বাবল সার্ভিস
+    private fun startBubbleService() {
         val bubbleIntent = Intent(this, FloatingBubbleService::class.java)
-        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(bgIntent)
             startForegroundService(bubbleIntent)
         } else {
-            startService(bgIntent)
             startService(bubbleIntent)
         }
     }
