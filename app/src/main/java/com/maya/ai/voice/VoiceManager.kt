@@ -37,7 +37,9 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
         try {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
             nativeTts = TextToSpeech(context, this)
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onInit(status: Int) {
@@ -45,15 +47,24 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
             val locale = Locale("bn", "IN")
             if (nativeTts?.isLanguageAvailable(locale) == TextToSpeech.LANG_AVAILABLE) {
                 nativeTts?.language = locale
-            } else { nativeTts?.language = Locale.US }
+            } else {
+                nativeTts?.language = Locale.US
+            }
             isNativeTtsReady = true
         }
     }
 
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
-        if (apiKey.isEmpty()) { showToast("API Key খালি!"); speakNative(text); return@withContext }
+        if (apiKey.isEmpty()) {
+            showToast("API Key খালি!")
+            speakNative(text)
+            return@withContext
+        }
 
-        var pitch = 0.0; var pace = 1.0; var loudness = 1.0
+        var pitch = 0.0
+        var pace = 1.0
+        var loudness = 1.0
+
         when (emotion) {
             "happy", "love" -> { pitch = 0.25; pace = 1.1; loudness = 1.2 }
             "angry" -> { pitch = -0.1; pace = 1.15; loudness = 1.5 }
@@ -61,8 +72,13 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
         }
 
         val json = JSONObject().apply {
-            put("text", text); put("target_language_code", "bn-IN"); put("speaker", "roopa")
-            put("model", "bulbul:v3"); put("pitch", pitch); put("pace", pace); put("loudness", loudness)
+            put("text", text)
+            put("target_language_code", "bn-IN")
+            put("speaker", "roopa") 
+            put("model", "bulbul:v3")
+            put("pitch", pitch)
+            put("pace", pace)
+            put("loudness", loudness)
         }
 
         val request = Request.Builder()
@@ -75,22 +91,47 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
         try {
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string()
+            
             if (response.isSuccessful && responseBody != null) {
                 val resJson = JSONObject(responseBody)
                 val base64Audio = resJson.getJSONArray("audios").getString(0)
                 val audioBytes = android.util.Base64.decode(base64Audio, android.util.Base64.DEFAULT)
+
                 val audioFile = File(context.cacheDir, "maya_sarvam.wav")
                 FileOutputStream(audioFile).use { it.write(audioBytes) }
+
                 withContext(Dispatchers.Main) {
                     mediaPlayer?.release()
-                    mediaPlayer = MediaPlayer().apply { setDataSource(audioFile.absolutePath); prepare(); start() }
+                    mediaPlayer = MediaPlayer().apply {
+                        setDataSource(audioFile.absolutePath)
+                        prepare()
+                        start()
+                    }
                 }
-            } else { showToast("Sarvam Error: ${response.code}"); speakNative(text) }
-        } catch (e: Exception) { showToast("Network Error"); speakNative(text) }
+            } else {
+                showToast("Sarvam Error: ${response.code}")
+                speakNative(text)
+            }
+        } catch (e: Exception) {
+            showToast("Network Error: ${e.message}")
+            speakNative(text)
+        }
     }
 
-    private suspend fun showToast(msg: String) { withContext(Dispatchers.Main) { Toast.makeText(context, msg, Toast.LENGTH_LONG).show() } }
-    private fun speakNative(text: String) { if (isNativeTtsReady) { Handler(Looper.getMainLooper()).post { nativeTts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "maya") } } }
+    private suspend fun showToast(msg: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // এটি পাবলিক করা হলো যাতে ফ্লোটিং বাবল এক্সেস করতে পারে
+    fun speakNative(text: String) {
+        if (isNativeTtsReady) {
+            Handler(Looper.getMainLooper()).post {
+                nativeTts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "maya")
+            }
+        }
+    }
 
     fun startListening(onResult: (String) -> Unit, onError: (String) -> Unit) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
