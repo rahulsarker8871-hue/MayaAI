@@ -52,17 +52,16 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
 
     suspend fun speakWithSarvam(text: String, apiKey: String, emotion: String = "happy") = withContext(Dispatchers.IO) {
         if (apiKey.isEmpty()) {
-            showToast("Sarvam API Key খালি!")
+            showToast("Sarvam AI Key সেভ করা নেই! ফোনের ভয়েস ব্যবহার হচ্ছে।")
             speakNative(text)
             return@withContext
         }
 
-        // bulbul:v2 এর জন্য সঠিক প্যারামিটার
         val json = JSONObject().apply {
             put("text", text)
             put("target_language_code", "bn-IN")
             put("speaker", "anushka") 
-            put("model", "bulbul:v2") // v2 ব্যবহার করা হলো, এটি এরর দেয় না
+            put("model", "bulbul:v2")
         }
 
         val request = Request.Builder()
@@ -93,17 +92,17 @@ class VoiceManager(private val context: Context) : TextToSpeech.OnInitListener {
                     }
                 }
             } else {
-                showToast("Sarvam Error: ${response.code}")
+                showToast("Sarvam Error: ${response.code}. ফোনের ভয়েস ব্যবহার হচ্ছে।")
                 speakNative(text)
             }
         } catch (e: Exception) {
-            showToast("Network Error")
+            showToast("Network Error. ফোনের ভয়েস ব্যবহার হচ্ছে।")
             speakNative(text)
         }
     }
 
     private suspend fun showToast(msg: String) {
-        withContext(Dispatchers.Main) { Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() }
+        withContext(Dispatchers.Main) { Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
     }
 
     fun speakNative(text: String) {
