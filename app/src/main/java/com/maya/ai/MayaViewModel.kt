@@ -74,6 +74,10 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
                 val parts = actionMatch.groupValues[1].split(":")
                 actionResult = when (parts[0]) {
                     "OPEN_APP" -> if (parts.size > 1) phoneController.openApp(parts[1]) else "অ্যাপের নাম বলোনি।"
+                    "MEDIA_PLAY_PAUSE" -> phoneController.togglePlayPause()
+                    "MEDIA_NEXT" -> phoneController.nextTrack()
+                    "MEDIA_PREV" -> phoneController.previousTrack()
+                    "WHATSAPP_CHAT" -> if (parts.size > 1) phoneController.openWhatsAppChat(parts[1]) else "নাম্বার দাওনি।"
                     "SET_ALARM" -> if (parts.size > 1) {
                         val timeParts = parts[1].split(":")
                         if (timeParts.size == 2) phoneController.setAlarm(timeParts[0].toIntOrNull() ?: 8, timeParts[1].toIntOrNull() ?: 0) else "সময় বুঝতে পারিনি।"

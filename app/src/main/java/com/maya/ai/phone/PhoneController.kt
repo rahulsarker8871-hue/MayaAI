@@ -6,10 +6,52 @@ import android.net.Uri
 import android.provider.AlarmClock
 import android.provider.Settings
 import android.telephony.SmsManager
+import android.view.KeyEvent
 
 class PhoneController(private val context: Context) {
 
-    // ফোনের ভেতরের অ্যাপের নাম দিয়ে সার্চ করার ফাংশন
+    // মিউজিক প্লে/পজ করার ফাংশন (YouTube, Spotify সবখানে কাজ করবে)
+    fun togglePlayPause(): String {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
+            audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
+            "গান প্লে বা পজ করে দিলাম।"
+        } catch (e: Exception) { "মিউজিক কন্ট্রোল করতে পারছি না।" }
+    }
+
+    // নেক্সট গানে যাওয়া
+    fun nextTrack(): String {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT))
+            audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_NEXT))
+            "নেক্সট গান চালু করলাম।"
+        } catch (e: Exception) { "গান চেঞ্জ করতে পারছি না।" }
+    }
+
+    // আগের গানে যাওয়া
+    fun previousTrack(): String {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS))
+            audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS))
+            "আগের গান চালু করলাম।"
+        } catch (e: Exception) { "গান চেঞ্জ করতে পারছি না।" }
+    }
+
+    // হোয়াটসঅ্যাপ চ্যাট ওপেন করা
+    fun openWhatsAppChat(phoneNumber: String): String {
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.data = Uri.parse("https://wa.me/$phoneNumber")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            "হোয়াটসঅ্যাপে চ্যাট ওপেন করে দিচ্ছি।"
+        } catch (e: Exception) { "হোয়াটসঅ্যাপ খুলতে পারছি না।" }
+    }
+
+    // অ্যাপের নাম দিয়ে সার্চ
     private fun findPackageByAppName(appName: String): String? {
         val pm = context.packageManager
         val mainIntent = Intent(Intent.ACTION_MAIN, null)
@@ -17,23 +59,16 @@ class PhoneController(private val context: Context) {
         val apps = pm.queryIntentActivities(mainIntent, 0)
         for (app in apps) {
             val label = app.loadLabel(pm).toString().lowercase()
-            if (label.contains(appName.lowercase())) {
-                return app.activityInfo.packageName
-            }
+            if (label.contains(appName.lowercase())) return app.activityInfo.packageName
         }
         return null
     }
 
     fun openApp(appNameOrPackage: String): String {
         var packageName = appNameOrPackage.trim()
-        
-        // যদি সরাসরি প্যাকেজ নেম না দেওয়া হয়, তবে অ্যাপের নাম দিয়ে খুঁজবে
         if (!packageName.contains(".")) {
             val foundPackage = findPackageByAppName(packageName)
-            packageName = if (foundPackage != null) {
-                foundPackage
-            } else {
-                // কিছু কমন অ্যাপের জন্য ফলব্যাক ডিকশনারি
+            packageName = if (foundPackage != null) foundPackage else {
                 when(packageName.lowercase()) {
                     "youtube", "ইউটিউব" -> "com.google.android.youtube"
                     "whatsapp", "হোয়াটসঅ্যাপ" -> "com.whatsapp"
@@ -47,14 +82,8 @@ class PhoneController(private val context: Context) {
 
         return try {
             val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-            if (intent != null) { 
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                "অ্যাপটি খুলে দিচ্ছি।" 
-            } 
-            else {
-                "দুঃখিত, '$appNameOrPackage' নামে কোনো অ্যাপ তোমার ফোনে খুঁজে পাচ্ছি না।"
-            }
+            if (intent != null) { intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(intent); "অ্যাপটি খুলে দিচ্ছি।" } 
+            else "দুঃখিত, '$appNameOrPackage' নামে কোনো অ্যাপ তোমার ফোনে খুঁজে পাচ্ছি না।"
         } catch (e: Exception) { "অ্যাপ খুলতে সমস্যা হচ্ছে।" }
     }
 

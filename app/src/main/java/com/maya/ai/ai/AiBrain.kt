@@ -27,7 +27,11 @@ class AiBrain(context: Context) {
             LONG TERM MEMORY: $longTermMemory
             CHAT HISTORY: $history
             CRITICAL INSTRUCTIONS: If the user asks you to do a phone task, you MUST append the action tag at the end of your reply.
-            - Open app: [ACTION: OPEN_APP:app_name] (e.g., [ACTION: OPEN_APP:gallery], [ACTION: OPEN_APP:spotify], [ACTION: OPEN_APP:youtube], [ACTION: OPEN_APP:whatsapp])
+            - Open app: [ACTION: OPEN_APP:app_name] (e.g., [ACTION: OPEN_APP:youtube], [ACTION: OPEN_APP:spotify])
+            - Play/Pause Media: [ACTION: MEDIA_PLAY_PAUSE]
+            - Next Track: [ACTION: MEDIA_NEXT]
+            - Prev Track: [ACTION: MEDIA_PREV]
+            - WhatsApp Chat: [ACTION: WHATSAPP_CHAT:01712345678] (Use 880 prefix if needed, e.g., 88017...)
             - Set Alarm: [ACTION: SET_ALARM:HH:MM] (24h format)
             - Battery: [ACTION: GET_BATTERY]
             - WiFi: [ACTION: OPEN_WIFI]
@@ -53,6 +57,6 @@ class AiBrain(context: Context) {
             if (response.isSuccessful && responseBody != null) {
                 JSONObject(responseBody).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
             } else "এরর: ${response.code}"
-        } catch (e: Exception) { "নেটওয়ার্ক এরর।" }
+        } catch (e: Exception) { "নেটওয়ার্ক এরর।" }
     }
 }
