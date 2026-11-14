@@ -27,16 +27,14 @@ class AiBrain(context: Context) {
             LONG TERM MEMORY: $longTermMemory
             CHAT HISTORY: $history
             CRITICAL INSTRUCTIONS: If the user asks you to do a phone task, you MUST append the action tag at the end of your reply.
-            - Open app: [ACTION: OPEN_APP:app_name] (e.g., [ACTION: OPEN_APP:youtube], [ACTION: OPEN_APP:spotify])
+            - Open app: [ACTION: OPEN_APP:app_name] (e.g., [ACTION: OPEN_APP:gallery], [ACTION: OPEN_APP:spotify])
+            - YouTube Search: [ACTION: YOUTUBE_SEARCH:search_query] (e.g., [ACTION: YOUTUBE_SEARCH:Arijit Singh songs])
+            - WhatsApp Message: [ACTION: WHATSAPP_MSG:01712345678:Hello] (Use 11 digit number)
             - Play/Pause Media: [ACTION: MEDIA_PLAY_PAUSE]
             - Next Track: [ACTION: MEDIA_NEXT]
-            - Prev Track: [ACTION: MEDIA_PREV]
-            - WhatsApp Chat: [ACTION: WHATSAPP_CHAT:01712345678] (Use 880 prefix if needed, e.g., 88017...)
-            - Set Alarm: [ACTION: SET_ALARM:HH:MM] (24h format)
+            - Set Alarm: [ACTION: SET_ALARM:HH:MM]
             - Battery: [ACTION: GET_BATTERY]
-            - WiFi: [ACTION: OPEN_WIFI]
             - Call: [ACTION: CALL:01712345678]
-            - SMS: [ACTION: SMS:01712345678:Hello]
             $emotionalPrompt
         """.trimIndent()
         

@@ -74,18 +74,16 @@ class MayaViewModel(application: Application) : AndroidViewModel(application) {
                 val parts = actionMatch.groupValues[1].split(":")
                 actionResult = when (parts[0]) {
                     "OPEN_APP" -> if (parts.size > 1) phoneController.openApp(parts[1]) else "অ্যাপের নাম বলোনি।"
+                    "YOUTUBE_SEARCH" -> if (parts.size > 1) phoneController.searchYouTube(parts[1]) else "কী সার্চ করতে হবে বলোনি।"
+                    "WHATSAPP_MSG" -> if (parts.size > 2) phoneController.sendWhatsAppMessage(parts[1], parts[2]) else "নাম্বার বা মেসেজ দাওনি।"
                     "MEDIA_PLAY_PAUSE" -> phoneController.togglePlayPause()
                     "MEDIA_NEXT" -> phoneController.nextTrack()
-                    "MEDIA_PREV" -> phoneController.previousTrack()
-                    "WHATSAPP_CHAT" -> if (parts.size > 1) phoneController.openWhatsAppChat(parts[1]) else "নাম্বার দাওনি।"
                     "SET_ALARM" -> if (parts.size > 1) {
                         val timeParts = parts[1].split(":")
                         if (timeParts.size == 2) phoneController.setAlarm(timeParts[0].toIntOrNull() ?: 8, timeParts[1].toIntOrNull() ?: 0) else "সময় বুঝতে পারিনি।"
                     } else "কখন অ্যালার্ম দেব?"
                     "GET_BATTERY" -> phoneController.getBatteryLevel()
-                    "OPEN_WIFI" -> phoneController.openWifiSettings()
                     "CALL" -> if (parts.size > 1) phoneController.makeCall(parts[1]) else "নাম্বার দাওনি।"
-                    "SMS" -> if (parts.size > 2) phoneController.sendSms(parts[1], parts[2]) else "নাম্বার বা মেসেজ দাওনি।"
                     else -> ""
                 }
                 rawReply = rawReply.replace(actionMatch.value, "").trim()
